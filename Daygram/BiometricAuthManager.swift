@@ -1,0 +1,103 @@
+import LocalAuthentication
+import SwiftUI
+
+class BiometricAuthManager: ObservableObject {
+    @Published var isAuthenticated = false
+    @Published var authError: String?
+    @Published var biometricType: LABiometryType = .none
+    
+    private let context = LAContext()
+    private let reason = "Unlock Daygram to view your private memories"
+    
+    init() {
+        checkBiometricAvailability()
+    }
+    
+    func checkBiometricAvailability() {
+        var error: NSError?
+        
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            biometricType = context.biometryType
+        } else {
+            biometricType = .none
+            if error?.code == LAError.biometryNotEnrolled.rawValue {
+                authError = "No biometric authentication enrolled"
+            }
+        }
+    }
+    
+    func authenticate() async {
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
+            await MainActor.run {
+                authError = "Biometric authentication not available"
+            }
+            return
+        }
+        
+        do {
+            let success = try await context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: reason
+            )
+            
+            await MainActor.run {
+                if success {
+                    isAuthenticated = true
+                    authError = nil
+                } else {
+                    authError = "Authentication failed"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                authError = error.localizedDescription
+                isAuthenticated = false
+            }
+        }
+    }
+    
+    func authenticateWithPasscode() async {
+        do {
+            let success = try await context.evaluatePolicy(
+                .deviceOwnerAuthentication,
+                localizedReason: reason
+            )
+            
+            await MainActor.run {
+                if success {
+                    isAuthenticated = true
+                    authError = nil
+                } else {
+                    authError = "Authentication failed"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                authError = error.localizedDescription
+                isAuthenticated = false
+            }
+        }
+    }
+    
+    var biometricIcon: String {
+        switch biometricType {
+        case .faceID:
+            return "faceid"
+        case .touchID:
+            return "touchid"
+        default:
+            return "lock"
+        }
+    }
+    
+    var biometricName: String {
+        switch biometricType {
+        case .faceID:
+            return "Face ID"
+        case .touchID:
+            return "Touch ID"
+        default:
+            return "Passcode"
+        }
+    }
+}

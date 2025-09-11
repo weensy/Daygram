@@ -1,10 +1,3 @@
-//
-//  DaygramApp.swift
-//  Daygram
-//
-//  Created by woonjin.kim on 2025/09/10.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -12,7 +5,7 @@ import SwiftData
 struct DaygramApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            DiaryEntry.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +18,7 @@ struct DaygramApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AuthenticationView()
         }
         .modelContainer(sharedModelContainer)
     }
