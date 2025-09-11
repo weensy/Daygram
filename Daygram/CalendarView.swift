@@ -155,55 +155,52 @@ struct DayCell: View {
     
     var body: some View {
         Button(action: onTap) {
-            ZStack {
-                // Background - clean grid style
-                Rectangle()
-                    .fill(Color(.systemBackground))
-                    .overlay(
-                        Rectangle()
-                            .stroke(Color(.systemGray5), lineWidth: 0.5)
-                    )
-                
-                // Thumbnail image if exists
-                if let entry = entry {
-                    AsyncImage(url: nil) { _ in
-                        if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: entry.thumbnailFileName) {
-                            Image(uiImage: thumbnail)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .clipped()
-                                .opacity(0.8)
+            Rectangle()
+                .fill(Color(.systemBackground))
+                .overlay(
+                    Rectangle()
+                        .stroke(Color(.systemGray5), lineWidth: 0.5)
+                )
+                .overlay(
+                    // Thumbnail image if exists
+                    Group {
+                        if let entry = entry {
+                            AsyncImage(url: nil) { _ in
+                                if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: entry.thumbnailFileName) {
+                                    Image(uiImage: thumbnail)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                }
+                            }
                         }
                     }
-                }
-                
-                // Date number - top right
-                VStack {
-                    HStack {
-                        Spacer()
-                        Text("\(calendar.component(.day, from: date))")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(isToday ? .white : .primary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                Group {
-                                    if isToday {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color.accentColor)
-                                    } else if entry != nil {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color.black.opacity(0.6))
+                )
+                .overlay(
+                    // Date number - top right
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Text("\(calendar.component(.day, from: date))")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(isToday ? .white : (entry != nil ? .white : .primary))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Group {
+                                        if isToday {
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(Color.accentColor)
+                                        }
                                     }
-                                }
-                            )
+                                )
+                                .shadow(color: entry != nil && !isToday ? .black.opacity(0.7) : .clear, radius: 1, x: 0, y: 0)
+                        }
+                        Spacer()
                     }
-                    Spacer()
-                }
-                .padding(4)
-            }
-            .aspectRatio(1.0, contentMode: .fit)
+                    .padding(4)
+                )
+                .clipped()
+                .aspectRatio(1.0, contentMode: .fit)
         }
         .buttonStyle(PlainButtonStyle())
     }
