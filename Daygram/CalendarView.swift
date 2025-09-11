@@ -25,22 +25,16 @@ struct CalendarView: View {
                     Button(action: {
                         showingQuickAdd = true
                     }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                            Text("Quick Add")
-                                .font(.headline)
-                                .fontWeight(.medium)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color.accentColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 25))
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        Image(systemName: hasTodayEntry ? "checkmark" : "plus")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Color.accentColor)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
                     
-                    Text("Add today's memory")
+                    Text(hasTodayEntry ? "Today saved" : "Capture today")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -168,6 +162,12 @@ struct CalendarView: View {
     
     private func nextMonth() {
         selectedMonth = calendar.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
+    }
+    
+    private var hasTodayEntry: Bool {
+        let today = Date()
+        let todayKey = DiaryEntry.dayKey(for: today)
+        return entries.contains { $0.dayKey == todayKey }
     }
 }
 
