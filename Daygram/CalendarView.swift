@@ -8,6 +8,7 @@ struct CalendarView: View {
     @State private var selectedMonth = Date()
     @State private var selectedDate: Date?
     @State private var showingSettings = false
+    @State private var showingQuickAdd = false
     
     private var calendar = Calendar.current
     
@@ -16,7 +17,34 @@ struct CalendarView: View {
             VStack(spacing: 0) {
                 monthHeader
                 calendarGrid
+                
                 Spacer()
+                
+                // Quick Add Button
+                VStack(spacing: 16) {
+                    Button(action: {
+                        showingQuickAdd = true
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                            Text("Quick Add")
+                                .font(.headline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    }
+                    
+                    Text("Add today's memory")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.bottom, 32)
             }
             .navigationTitle("Daygram")
             .navigationBarTitleDisplayMode(.large)
@@ -36,6 +64,9 @@ struct CalendarView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showingQuickAdd) {
+                AddEntryView(date: Date())
             }
         }
     }
