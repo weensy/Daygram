@@ -5,6 +5,7 @@ struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var entries: [DiaryEntry]
     
+    @StateObject private var thumbnailCache = ThumbnailCache.shared
     @State private var selectedMonth = Date()
     @State private var selectedDate: Date?
     @State private var showingSettings = false
@@ -29,10 +30,11 @@ struct CalendarView: View {
                             .font(.system(size: 24, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 56, height: 56)
-                            .background(Color.accentColor)
+                            .background(hasTodayEntry ? Color.secondary : Color.accentColor)
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
+                    .disabled(hasTodayEntry)
                     
                     Text(hasTodayEntry ? "Today saved" : "Capture today")
                         .font(.caption)
@@ -54,13 +56,28 @@ struct CalendarView: View {
                 get: { selectedDate.map(DateWrapper.init) },
                 set: { selectedDate = $0?.date }
             )) { dateWrapper in
-                DayDetailView(date: dateWrapper.date)
+                let existingEntry = entryForDate(dateWrapper.date)
+                if let entry = existingEntry {
+                    EntryDetailView(entry: entry)
+                        .onAppear {
+                            // 이미지 미리 로드
+                            thumbnailCache.preloadImage(for: entry)
+                        }
+                } else {
+                    AddEntryView(date: dateWrapper.date)
+                }
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
             .sheet(isPresented: $showingQuickAdd) {
                 AddEntryView(date: Date())
+            }
+            .onAppear {
+                preloadCurrentMonthThumbnails()
+            }
+            .onChange(of: selectedMonth) { _, _ in
+                preloadCurrentMonthThumbnails()
             }
         }
     }
@@ -153,7 +170,11 @@ struct CalendarView: View {
     
     private func entryForDate(_ date: Date) -> DiaryEntry? {
         let dayKey = DiaryEntry.dayKey(for: date)
-        return entries.first { $0.dayKey == dayKey }
+        return entriesDict[dayKey]
+    }
+    
+    private var entriesDict: [String: DiaryEntry] {
+        Dictionary(entries.map { ($0.dayKey, $0) }) { first, _ in first }
     }
     
     private func previousMonth() {
@@ -169,6 +190,13 @@ struct CalendarView: View {
         let todayKey = DiaryEntry.dayKey(for: today)
         return entries.contains { $0.dayKey == todayKey }
     }
+    
+    private func preloadCurrentMonthThumbnails() {
+        let monthEntries = entries.filter { entry in
+            calendar.isDate(entry.date, equalTo: selectedMonth, toGranularity: .month)
+        }
+        thumbnailCache.preloadThumbnails(for: monthEntries)
+    }
 }
 
 struct DayCell: View {
@@ -176,6 +204,7 @@ struct DayCell: View {
     let entry: DiaryEntry?
     let onTap: () -> Void
     
+    @StateObject private var thumbnailCache = ThumbnailCache.shared
     private var calendar = Calendar.current
     
     init(date: Date, entry: DiaryEntry?, onTap: @escaping () -> Void) {
@@ -196,12 +225,17 @@ struct DayCell: View {
                     // Thumbnail image if exists
                     Group {
                         if let entry = entry {
-                            AsyncImage(url: nil) { _ in
-                                if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: entry.thumbnailFileName) {
-                                    Image(uiImage: thumbnail)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                }
+                            if let cachedThumbnail = thumbnailCache.getThumbnail(for: entry.thumbnailFileName) {
+                                Image(uiImage: cachedThumbnail)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } else if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: entry.thumbnailFileName) {
+                                Image(uiImage: thumbnail)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .onAppear {
+                                        thumbnailCache.preloadThumbnails(for: [entry])
+                                    }
                             }
                         }
                     }

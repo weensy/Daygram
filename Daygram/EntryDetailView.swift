@@ -6,27 +6,36 @@ struct EntryDetailView: View {
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var imageCache = ThumbnailCache.shared
     
     @State private var isEditing = false
     @State private var editedText = ""
     @State private var showingDeleteAlert = false
     @State private var showingShareSheet = false
+    @State private var displayImage: UIImage?
     
     private let textLimit = 500
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                imageSection
-                textSection
-                metadataSection
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    imageSection
+                    textSection
+                    metadataSection
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 20)
-        }
-        .navigationTitle("Memory")
-        .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(dateTitle)
+            .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: { isEditing.toggle() }) {
@@ -60,12 +69,14 @@ struct EntryDetailView: View {
         }
         .onAppear {
             editedText = entry.text
+            loadImage()
+        }
         }
     }
     
     private var imageSection: some View {
         VStack(spacing: 12) {
-            if let image = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName) {
+            if let image = displayImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -76,8 +87,8 @@ struct EntryDetailView: View {
                     .fill(Color.gray.opacity(0.3))
                     .frame(height: 300)
                     .overlay(
-                        Text("Image not found")
-                            .foregroundColor(.secondary)
+                        ProgressView()
+                            .scaleEffect(1.5)
                     )
             }
         }
@@ -169,6 +180,12 @@ struct EntryDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     
+    private var dateTitle: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        return formatter.string(from: entry.date)
+    }
+    
     private var dateString: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .full
@@ -212,6 +229,29 @@ struct EntryDetailView: View {
             dismiss()
         } catch {
             print("Error deleting entry: \(error)")
+        }
+    }
+    
+    private func loadImage() {
+        // 캐시된 이미지 먼저 확인
+        if let cachedImage = imageCache.getImage(for: entry.imageFileName) {
+            displayImage = cachedImage
+            return
+        }
+        
+        // 백그라운드에서 이미지 로드
+        Task {
+            let image = await Task.detached(priority: .userInitiated) {
+                return ImageStorageManager.shared.loadImage(fileName: entry.imageFileName)
+            }.value
+            
+            await MainActor.run {
+                displayImage = image
+                if let image = image {
+                    // 캐시에 저장
+                    imageCache.cacheImage(image, fileName: entry.imageFileName)
+                }
+            }
         }
     }
 }
