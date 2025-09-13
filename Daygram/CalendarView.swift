@@ -24,17 +24,20 @@ struct CalendarView: View {
                 // Quick Add Button
                 VStack(spacing: 16) {
                     Button(action: {
-                        showingQuickAdd = true
+                        if hasTodayEntry {
+                            selectedDate = Date()
+                        } else {
+                            showingQuickAdd = true
+                        }
                     }) {
                         Image(systemName: hasTodayEntry ? "checkmark" : "plus")
                             .font(.system(size: 24, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 56, height: 56)
-                            .background(hasTodayEntry ? Color.secondary : Color.accentColor)
+                            .background(hasTodayEntry ? Color.accentColor : Color.accentColor)
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
-                    .disabled(hasTodayEntry)
                     
                     Text(hasTodayEntry ? "Today saved" : "Capture today")
                         .font(.caption)
