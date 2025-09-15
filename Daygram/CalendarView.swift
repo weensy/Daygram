@@ -39,9 +39,9 @@ struct CalendarView: View {
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
                     
-                    Text(hasTodayEntry ? "Today saved" : "Capture today")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+//                    Text(hasTodayEntry ? "Today saved" : "Capture today")
+//                        .font(.caption)
+//                        .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 32)
             }
@@ -112,7 +112,7 @@ struct CalendarView: View {
     }
     
     private var calendarGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 2) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1.2), count: 7), spacing: 1.2) {
             ForEach(weekdayHeaders, id: \.self) { weekday in
                 Text(weekday)
                     .font(.caption2)
@@ -222,7 +222,7 @@ struct DayCell: View {
                 .fill(Color(.systemBackground))
                 .overlay(
                     Rectangle()
-                        .stroke(Color(.systemGray5), lineWidth: 0.5)
+                        .stroke(Color(.systemGray5), lineWidth: 0.6)
                 )
                 .overlay(
                     // Thumbnail image if exists
