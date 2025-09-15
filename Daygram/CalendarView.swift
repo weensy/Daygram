@@ -17,10 +17,11 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                yearHeader
+                // yearHeader
                 Spacer()
                 calendarCarousel
                 // statsSection
+                Spacer()
                 Spacer()
                 
                 // Quick Add Button
@@ -47,7 +48,8 @@ struct CalendarView: View {
                 }
                 .padding(.bottom, 24)
             }
-            .navigationTitle("Daygram")
+            // .navigationTitle("Daygram")
+            .navigationTitle(yearText)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -172,7 +174,7 @@ struct CalendarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(.top, 12)
         .padding(.bottom, 24)
     }
     
