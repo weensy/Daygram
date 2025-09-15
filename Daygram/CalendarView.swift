@@ -22,8 +22,6 @@ struct CalendarView: View {
                 calendarCarousel
                 // statsSection
                 Spacer()
-                Spacer()
-                Spacer()
                 
                 // Quick Add Button
                 VStack(spacing: 16) {
@@ -47,7 +45,7 @@ struct CalendarView: View {
 //                        .font(.caption)
 //                        .foregroundColor(.secondary)
                 }
-                .padding(.bottom, 32)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Daygram")
             .navigationBarTitleDisplayMode(.large)
@@ -110,7 +108,7 @@ struct CalendarView: View {
             }
         }
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-        .frame(height: 480)
+        .frame(height: 520)
         .onChange(of: currentMonthIndex) { _, newIndex in
             selectedMonth = calendar.date(byAdding: .month, value: newIndex, to: Date()) ?? Date()
         }
@@ -137,13 +135,12 @@ struct CalendarView: View {
             
             Spacer()
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1), count: 7), spacing: 1) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0.8), count: 7), spacing: 0.8) {
                 ForEach(weekdayHeaders, id: \.self) { weekday in
                     Text(weekday)
                         .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
-                        .frame(height: 24)
                 }
                 
                 ForEach(0..<42, id: \.self) { index in
@@ -157,15 +154,15 @@ struct CalendarView: View {
                             )
                         } else {
                             Color.clear
-                                .frame(height: 50)
+                                .aspectRatio(1.0, contentMode: .fit)
                         }
                     } else {
                         Color.clear
-                            .frame(height: 50)
+                            .aspectRatio(1.0, contentMode: .fit)
                     }
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 12)
             
             Spacer()
             // .frame(height: 16)
@@ -174,6 +171,8 @@ struct CalendarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
     }
     
     private func numberOfWeeks(for month: Date) -> Int {
