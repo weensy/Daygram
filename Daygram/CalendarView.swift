@@ -10,16 +10,19 @@ struct CalendarView: View {
     @State private var selectedDate: Date?
     @State private var showingSettings = false
     @State private var showingQuickAdd = false
+    @State private var currentMonthIndex = 0
     
     private var calendar = Calendar.current
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                monthHeader
-                calendarGrid
-                statsSection
-                
+                yearHeader
+                Spacer()
+                calendarCarousel
+                // statsSection
+                Spacer()
+                Spacer()
                 Spacer()
                 
                 // Quick Add Button
@@ -86,58 +89,156 @@ struct CalendarView: View {
         }
     }
     
-    private var monthHeader: some View {
+    private var yearHeader: some View {
         HStack {
-            Button(action: previousMonth) {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .fontWeight(.medium)
-            }
+            Text(yearText)
+                .font(.title3)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
             
             Spacer()
-            
-            Text(monthYearText)
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Spacer()
-            
-            Button(action: nextMonth) {
-                Image(systemName: "chevron.right")
-                    .font(.title2)
-                    .fontWeight(.medium)
-            }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 10)
+        .padding(.bottom, 10)
     }
     
-    private var calendarGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1.2), count: 7), spacing: 1.2) {
-            ForEach(weekdayHeaders, id: \.self) { weekday in
-                Text(weekday)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-                    .frame(height: 20)
-            }
-            
-            ForEach(monthDays.indices, id: \.self) { index in
-                let date = monthDays[index]
-                if calendar.isDate(date, equalTo: selectedMonth, toGranularity: .month) {
-                    DayCell(
-                        date: date,
-                        entry: entryForDate(date),
-                        onTap: { selectedDate = date }
-                    )
-                } else {
-                    Color.clear
-                        .frame(height: 50)
-                }
+    private var calendarCarousel: some View {
+        TabView(selection: $currentMonthIndex) {
+            ForEach(-12...12, id: \.self) { monthOffset in
+                calendarCard(for: monthOffset)
+                    .tag(monthOffset)
             }
         }
-        .padding(.horizontal, 4)
+        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+        .frame(height: 480)
+        .onChange(of: currentMonthIndex) { _, newIndex in
+            selectedMonth = calendar.date(byAdding: .month, value: newIndex, to: Date()) ?? Date()
+        }
     }
+    
+    private func calendarCard(for monthOffset: Int) -> some View {
+        let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
+        let monthDates = monthDays(for: monthDate)
+        let numberOfWeeks = numberOfWeeks(for: monthDate)
+        
+        return VStack(spacing: 0) {
+            Spacer()
+            // Month header inside card
+            HStack {
+                Spacer()
+                Text(monthText(for: monthDate))
+                    .font(.title)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 16)
+            
+            Spacer()
+            
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1), count: 7), spacing: 1) {
+                ForEach(weekdayHeaders, id: \.self) { weekday in
+                    Text(weekday)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                        .frame(height: 24)
+                }
+                
+                ForEach(0..<42, id: \.self) { index in
+                    if index < monthDates.count {
+                        let date = monthDates[index]
+                        if calendar.isDate(date, equalTo: monthDate, toGranularity: .month) {
+                            DayCell(
+                                date: date,
+                                entry: entryForDate(date),
+                                onTap: { selectedDate = date }
+                            )
+                        } else {
+                            Color.clear
+                                .frame(height: 50)
+                        }
+                    } else {
+                        Color.clear
+                            .frame(height: 50)
+                    }
+                }
+            }
+            .padding(.horizontal, 8)
+            
+            Spacer()
+            // .frame(height: 16)
+        }
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .padding(.horizontal, 16)
+    }
+    
+    private func numberOfWeeks(for month: Date) -> Int {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: month) else { return 6 }
+        
+        let firstOfMonth = monthInterval.start
+        let lastOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end) ?? monthInterval.start
+        
+        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
+        let daysFromPreviousMonth = (firstWeekday - calendar.firstWeekday + 7) % 7
+        
+        let daysInMonth = calendar.component(.day, from: lastOfMonth)
+        let totalDays = daysFromPreviousMonth + daysInMonth
+        
+        return (totalDays + 6) / 7 // Round up to get number of weeks
+    }
+    
+    // private var calendarGrid: some View {
+    //     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1.2), count: 7), spacing: 1.2) {
+    //         ForEach(weekdayHeaders, id: \.self) { weekday in
+    //             Text(weekday)
+    //                 .font(.caption2)
+    //                 .fontWeight(.medium)
+    //                 .foregroundColor(.secondary)
+    //                 .frame(height: 20)
+    //         }
+            
+    //         ForEach(monthDays.indices, id: \.self) { index in
+    //             let date = monthDays[index]
+    //             if calendar.isDate(date, equalTo: selectedMonth, toGranularity: .month) {
+    //                 DayCell(
+    //                     date: date,
+    //                     entry: entryForDate(date),
+    //                     onTap: { selectedDate = date }
+    //                 )
+    //             } else {
+    //                 Color.clear
+    //                     .frame(height: 50)
+    //             }
+    //         }
+    //     }
+    //     .padding(.horizontal, 16)
+    //     .padding(.vertical, 12)
+    //     .background(Color(.secondarySystemBackground))
+    //     .clipShape(RoundedRectangle(cornerRadius: 16))
+    //     .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+    //     .padding(.horizontal, 16)
+    //     .gesture(
+    //         DragGesture()
+    //             .onEnded { value in
+    //                 let threshold: CGFloat = 50
+    //                 if value.translation.width > threshold {
+    //                     // Swipe right - go to previous month
+    //                     withAnimation {
+    //                         currentMonthIndex -= 1
+    //                     }
+    //                 } else if value.translation.width < -threshold {
+    //                     // Swipe left - go to next month
+    //                     withAnimation {
+    //                         currentMonthIndex += 1
+    //                     }
+    //                 }
+    //             }
+    //     )
+    // }
     
     private var statsSection: some View {
         HStack(spacing: 12) {
@@ -167,7 +268,11 @@ struct CalendarView: View {
     }
     
     private var monthDays: [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: selectedMonth) else { return [] }
+        return monthDays(for: selectedMonth)
+    }
+    
+    private func monthDays(for month: Date) -> [Date] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: month) else { return [] }
         
         let firstOfMonth = monthInterval.start
         
@@ -193,6 +298,18 @@ struct CalendarView: View {
         return formatter.string(from: selectedMonth)
     }
     
+    private var yearText: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy"
+        return formatter.string(from: selectedMonth)
+    }
+    
+    private func monthText(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: date)
+    }
+    
     private func entryForDate(_ date: Date) -> DiaryEntry? {
         let dayKey = DiaryEntry.dayKey(for: date)
         return entriesDict[dayKey]
@@ -202,13 +319,6 @@ struct CalendarView: View {
         Dictionary(entries.map { ($0.dayKey, $0) }) { first, _ in first }
     }
     
-    private func previousMonth() {
-        selectedMonth = calendar.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
-    }
-    
-    private func nextMonth() {
-        selectedMonth = calendar.date(byAdding: .month, value: 1, to: selectedMonth) ?? selectedMonth
-    }
     
     private var hasTodayEntry: Bool {
         let today = Date()
