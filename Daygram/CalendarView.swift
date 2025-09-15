@@ -117,7 +117,7 @@ struct CalendarView: View {
     private func calendarCard(for monthOffset: Int) -> some View {
         let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
         let monthDates = monthDays(for: monthDate)
-        let numberOfWeeks = numberOfWeeks(for: monthDate)
+        // let numberOfWeeks = numberOfWeeks(for: monthDate)
         
         return VStack(spacing: 0) {
             Spacer()
@@ -135,12 +135,13 @@ struct CalendarView: View {
             
             Spacer()
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0.8), count: 7), spacing: 0.8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1), count: 7), spacing: 1) {
                 ForEach(weekdayHeaders, id: \.self) { weekday in
                     Text(weekday)
                         .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(.secondary)
+                        .frame(height: 24)
                 }
                 
                 ForEach(0..<42, id: \.self) { index in
@@ -421,10 +422,10 @@ struct DayCell: View {
         Button(action: onTap) {
             Rectangle()
                 .fill(Color(.systemBackground))
-                .overlay(
-                    Rectangle()
-                        .stroke(Color(.systemGray5), lineWidth: 0.6)
-                )
+                // .overlay(
+                //     Rectangle()
+                //         // .stroke(Color(.systemGray5), lineWidth: 0.6)
+                // )
                 .overlay(
                     // Thumbnail image if exists
                     Group {
