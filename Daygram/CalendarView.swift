@@ -18,6 +18,7 @@ struct CalendarView: View {
             VStack(spacing: 0) {
                 monthHeader
                 calendarGrid
+                statsSection
                 
                 Spacer()
                 
@@ -138,6 +139,27 @@ struct CalendarView: View {
         .padding(.horizontal, 4)
     }
     
+    private var statsSection: some View {
+        HStack(spacing: 12) {
+            StatItem(
+                title: "Streak",
+                value: "\(currentStreak)"
+            )
+            
+            StatItem(
+                title: "Weeks",
+                value: "\(fullWeeks)"
+            )
+            
+            StatItem(
+                title: "Memories",
+                value: "\(entries.count)"
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+    }
+    
     private var weekdayHeaders: [String] {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
@@ -193,6 +215,76 @@ struct CalendarView: View {
         let todayKey = DiaryEntry.dayKey(for: today)
         return entries.contains { $0.dayKey == todayKey }
     }
+    
+    private var currentStreak: Int {
+        guard !entries.isEmpty else { return 0 }
+        
+        var streak = 0
+        var currentDate = Date()
+        
+        // Create a set of day keys for quick lookup
+        let entryDayKeys = Set(entries.map { $0.dayKey })
+        
+        // Check if today has an entry
+        let todayHasEntry = entryDayKeys.contains(DiaryEntry.dayKey(for: currentDate))
+        
+        if todayHasEntry {
+            // If today has an entry, count from today backwards
+            while entryDayKeys.contains(DiaryEntry.dayKey(for: currentDate)) {
+                streak += 1
+                currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
+            }
+        } else {
+            // If today has no entry, start from yesterday
+            currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
+            
+            while entryDayKeys.contains(DiaryEntry.dayKey(for: currentDate)) {
+                streak += 1
+                currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
+            }
+        }
+        
+        return streak
+    }
+    
+    private var fullWeeks: Int {
+        // Create a set of day keys for quick lookup
+        let entryDayKeys = Set(entries.map { $0.dayKey })
+        
+        // Group entries by week (Sunday to Saturday)
+        let entriesByWeek = Dictionary(grouping: entries) { entry in
+            // Get the Sunday that starts this week
+            let weekInterval = calendar.dateInterval(of: .weekOfYear, for: entry.date)
+            return weekInterval?.start ?? entry.date
+        }
+        
+        var completedWeeks = 0
+        
+        for (weekStart, _) in entriesByWeek {
+            // Check if this week has entries for all 7 days (Sunday through Saturday)
+            var hasAllDays = true
+            
+            for dayOffset in 0..<7 {
+                guard let dayInWeek = calendar.date(byAdding: .day, value: dayOffset, to: weekStart) else {
+                    hasAllDays = false
+                    break
+                }
+                
+                let dayKey = DiaryEntry.dayKey(for: dayInWeek)
+                if !entryDayKeys.contains(dayKey) {
+                    hasAllDays = false
+                    break
+                }
+            }
+            
+            if hasAllDays {
+                completedWeeks += 1
+            }
+        }
+        
+        return completedWeeks
+    }
+    
     
     private func preloadCurrentMonthThumbnails() {
         let monthEntries = entries.filter { entry in
@@ -282,6 +374,30 @@ struct DateWrapper: Identifiable {
     let id = UUID()
     let date: Date
 }
+
+
+struct StatItem: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.title2)
+                .fontWeight(.bold)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
 
 #Preview {
     CalendarView()
