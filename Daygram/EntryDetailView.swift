@@ -233,24 +233,23 @@ struct EntryDetailView: View {
     }
     
     private func loadImage() {
-        // 캐시된 이미지 먼저 확인
+        // Check cached image first
         if let cachedImage = imageCache.getImage(for: entry.imageFileName) {
             displayImage = cachedImage
             return
         }
         
-        // 백그라운드에서 이미지 로드
+        // Load image in background
         Task {
+            let fileName = entry.imageFileName // Extract from main actor context
             let image = await Task.detached(priority: .userInitiated) {
-                return ImageStorageManager.shared.loadImage(fileName: entry.imageFileName)
+                return ImageStorageManager.shared.loadImage(fileName: fileName)
             }.value
             
-            await MainActor.run {
-                displayImage = image
-                if let image = image {
-                    // 캐시에 저장
-                    imageCache.cacheImage(image, fileName: entry.imageFileName)
-                }
+            displayImage = image
+            if let image = image {
+                // Cache the image
+                imageCache.cacheImage(image, fileName: fileName)
             }
         }
     }
