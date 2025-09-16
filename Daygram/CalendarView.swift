@@ -10,7 +10,11 @@ struct CalendarView: View {
     @State private var selectedDate: Date?
     @State private var showingSettings = false
     @State private var showingQuickAdd = false
-    @State private var currentMonthIndex = 0
+    @State private var currentMonthID: Int? = 0
+    
+    private let cardSpacing: CGFloat = 12
+    private let sideInset: CGFloat = 0
+    private let peekReveal: CGFloat = 60 // visible width of the next card
     
     private var calendar = Calendar.current
     
@@ -91,27 +95,29 @@ struct CalendarView: View {
     
     
     private var calendarCarousel: some View {
-        GeometryReader { geometry in
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        ForEach(-12...12, id: \.self) { monthOffset in
-                            calendarCard(for: monthOffset)
-                                .frame(width: geometry.size.width)
-                                .id(monthOffset)
-                        }
+        GeometryReader { geo in
+            ScrollView(.horizontal) {
+                HStack(spacing: cardSpacing) {
+                    ForEach(-12...12, id: \.self) { monthOffset in
+                        calendarCard(for: monthOffset)
+                            .frame(width: geo.size.width - peekReveal)
+                            .id(monthOffset)
                     }
                 }
-                .scrollTargetBehavior(.paging)
-                .onChange(of: currentMonthIndex) { _, newIndex in
-                    selectedMonth = calendar.date(byAdding: .month, value: newIndex, to: Date()) ?? Date()
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        proxy.scrollTo(newIndex, anchor: .leading)
-                    }
-                }
-                .onAppear {
-                    proxy.scrollTo(currentMonthIndex, anchor: .leading)
-                }
+                .scrollTargetLayout()
+                .frame(maxHeight: .infinity)
+            }
+            .contentMargins(.horizontal, peekReveal / 2) // center each card within viewport
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+            .scrollPosition(id: $currentMonthID)
+            .onChange(of: currentMonthID) { _, newID in
+                let index = newID ?? 0
+                selectedMonth = calendar.date(byAdding: .month, value: index, to: Date()) ?? Date()
+            }
+            .onAppear {
+                currentMonthID = 0
+                selectedMonth = Date()
             }
         }
         .frame(height: 520)
@@ -172,7 +178,7 @@ struct CalendarView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 0) // remove outer horizontal padding to expose peek
         .padding(.top, 12)
         .padding(.bottom, 24)
     }
