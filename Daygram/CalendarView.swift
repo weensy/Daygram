@@ -17,8 +17,24 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // yearHeader
-                Spacer()
+                // Custom Header with year and settings icon
+                HStack {
+                    Text(yearText)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                    
+                    Spacer()
+                    
+                    Button(action: { showingSettings = true }) {
+                        Image(systemName: "gearshape")
+                            .font(.title2)
+                            .fontWeight(.medium)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
+                
                 calendarCarousel
                 // statsSection
                 Spacer()
@@ -48,17 +64,7 @@ struct CalendarView: View {
                 }
                 .padding(.bottom, 24)
             }
-            // .navigationTitle("Daygram")
-            .navigationTitle(yearText)
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingSettings = true }) {
-                        Image(systemName: "gearshape")
-                            .fontWeight(.medium)
-                    }
-                }
-            }
+            .navigationBarHidden(true)
             .sheet(item: Binding<DateWrapper?>(
                 get: { selectedDate.map(DateWrapper.init) },
                 set: { selectedDate = $0?.date }
@@ -103,17 +109,30 @@ struct CalendarView: View {
     }
     
     private var calendarCarousel: some View {
-        TabView(selection: $currentMonthIndex) {
-            ForEach(-12...12, id: \.self) { monthOffset in
-                calendarCard(for: monthOffset)
-                    .tag(monthOffset)
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(-12...12, id: \.self) { monthOffset in
+                            calendarCard(for: monthOffset)
+                                .frame(width: geometry.size.width)
+                                .id(monthOffset)
+                        }
+                    }
+                }
+                .scrollTargetBehavior(.paging)
+                .onChange(of: currentMonthIndex) { _, newIndex in
+                    selectedMonth = calendar.date(byAdding: .month, value: newIndex, to: Date()) ?? Date()
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(newIndex, anchor: .leading)
+                    }
+                }
+                .onAppear {
+                    proxy.scrollTo(currentMonthIndex, anchor: .leading)
+                }
             }
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         .frame(height: 520)
-        .onChange(of: currentMonthIndex) { _, newIndex in
-            selectedMonth = calendar.date(byAdding: .month, value: newIndex, to: Date()) ?? Date()
-        }
     }
     
     private func calendarCard(for monthOffset: Int) -> some View {
