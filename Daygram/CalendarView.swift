@@ -12,9 +12,9 @@ struct CalendarView: View {
     @State private var showingQuickAdd = false
     @State private var currentMonthID: Int? = 0
     
-    private let cardSpacing: CGFloat = 12
+    private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
-    private let peekReveal: CGFloat = 60 // visible width of the next card
+    private let peekReveal: CGFloat = 32 // visible width of the next card
     
     private var calendar = Calendar.current
     
@@ -101,6 +101,9 @@ struct CalendarView: View {
                     ForEach(-12...12, id: \.self) { monthOffset in
                         calendarCard(for: monthOffset)
                             .frame(width: geo.size.width - peekReveal)
+                            .scaleEffect(currentMonthID == monthOffset ? 1 : 0.96)
+                            .zIndex(currentMonthID == monthOffset ? 1 : 0)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
                             .id(monthOffset)
                     }
                 }
