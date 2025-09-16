@@ -36,8 +36,6 @@ struct CalendarView: View {
                 .padding(.bottom, 16)
                 
                 calendarCarousel
-                // statsSection
-                Spacer()
                 Spacer()
                 
                 // Quick Add Button
@@ -57,10 +55,6 @@ struct CalendarView: View {
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
-                    
-//                    Text(hasTodayEntry ? "Today saved" : "Capture today")
-//                        .font(.caption)
-//                        .foregroundColor(.secondary)
                 }
                 .padding(.bottom, 24)
             }
@@ -73,7 +67,7 @@ struct CalendarView: View {
                 if let entry = existingEntry {
                     EntryDetailView(entry: entry)
                         .onAppear {
-                            // 이미지 미리 로드
+                            // Preload image
                             thumbnailCache.preloadImage(for: entry)
                         }
                 } else {
@@ -95,18 +89,6 @@ struct CalendarView: View {
         }
     }
     
-    private var yearHeader: some View {
-        HStack {
-            Text(yearText)
-                .font(.title3)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 10)
-    }
     
     private var calendarCarousel: some View {
         GeometryReader { geometry in
@@ -138,7 +120,6 @@ struct CalendarView: View {
     private func calendarCard(for monthOffset: Int) -> some View {
         let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
         let monthDates = monthDays(for: monthDate)
-        // let numberOfWeeks = numberOfWeeks(for: monthDate)
         
         return VStack(spacing: 0) {
             Spacer()
@@ -187,7 +168,6 @@ struct CalendarView: View {
             .padding(.horizontal, 12)
             
             Spacer()
-            // .frame(height: 16)
         }
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -211,55 +191,6 @@ struct CalendarView: View {
         
         return (totalDays + 6) / 7 // Round up to get number of weeks
     }
-    
-    // private var calendarGrid: some View {
-    //     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 1.2), count: 7), spacing: 1.2) {
-    //         ForEach(weekdayHeaders, id: \.self) { weekday in
-    //             Text(weekday)
-    //                 .font(.caption2)
-    //                 .fontWeight(.medium)
-    //                 .foregroundColor(.secondary)
-    //                 .frame(height: 20)
-    //         }
-            
-    //         ForEach(monthDays.indices, id: \.self) { index in
-    //             let date = monthDays[index]
-    //             if calendar.isDate(date, equalTo: selectedMonth, toGranularity: .month) {
-    //                 DayCell(
-    //                     date: date,
-    //                     entry: entryForDate(date),
-    //                     onTap: { selectedDate = date }
-    //                 )
-    //             } else {
-    //                 Color.clear
-    //                     .frame(height: 50)
-    //             }
-    //         }
-    //     }
-    //     .padding(.horizontal, 16)
-    //     .padding(.vertical, 12)
-    //     .background(Color(.secondarySystemBackground))
-    //     .clipShape(RoundedRectangle(cornerRadius: 16))
-    //     .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-    //     .padding(.horizontal, 16)
-    //     .gesture(
-    //         DragGesture()
-    //             .onEnded { value in
-    //                 let threshold: CGFloat = 50
-    //                 if value.translation.width > threshold {
-    //                     // Swipe right - go to previous month
-    //                     withAnimation {
-    //                         currentMonthIndex -= 1
-    //                     }
-    //                 } else if value.translation.width < -threshold {
-    //                     // Swipe left - go to next month
-    //                     withAnimation {
-    //                         currentMonthIndex += 1
-    //                     }
-    //                 }
-    //             }
-    //     )
-    // }
     
     private var statsSection: some View {
         HStack(spacing: 12) {
@@ -443,10 +374,6 @@ struct DayCell: View {
         Button(action: onTap) {
             Rectangle()
                 .fill(Color(.systemBackground))
-                // .overlay(
-                //     Rectangle()
-                //         // .stroke(Color(.systemGray5), lineWidth: 0.6)
-                // )
                 .overlay(
                     // Thumbnail image if exists
                     Group {
