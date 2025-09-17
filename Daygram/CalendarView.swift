@@ -12,6 +12,8 @@ struct CalendarView: View {
     @State private var showingQuickAdd = false
     @State private var currentMonthID: Int? = Calendar.current.component(.month, from: Date())
     @State private var displayedYear = Calendar.current.component(.year, from: Date())
+    @State private var debounceTask: Task<Void, Never>?
+    @State private var monthDatesCache: [String: [Date]] = [:]
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -88,7 +90,13 @@ struct CalendarView: View {
                 AddEntryView(date: Date())
             }
             .onAppear {
+                updateEntriesDict()
                 preloadCurrentMonthThumbnails()
+            }
+            .onChange(of: entries) { _, _ in
+                Task { @MainActor in
+                    updateEntriesDict()
+                }
             }
             .onChange(of: selectedMonth) { _, _ in
                 preloadCurrentMonthThumbnails()
@@ -106,21 +114,18 @@ struct CalendarView: View {
                     HStack(spacing: cardSpacing) {
                         previousYearReturnCard(proxy: proxy, width: navigationCardWidth)
                             .scaleEffect(currentMonthID == previousYearButtonID ? 1 : 0.96)
-                            .zIndex(currentMonthID == previousYearButtonID ? 1 : 0)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
+                            .animation(.interpolatingSpring(stiffness: 300, damping: 30), value: currentMonthID)
                             .id(previousYearButtonID)
                         ForEach(1...12, id: \.self) { month in
                             calendarCard(for: month)
                                 .frame(width: cardWidth)
                                 .scaleEffect(currentMonthID == month ? 1 : 0.96)
-                                .zIndex(currentMonthID == month ? 1 : 0)
-                                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
+                                .animation(.interpolatingSpring(stiffness: 300, damping: 30), value: currentMonthID)
                                 .id(month)
                         }
                         nextYearAdvanceCard(proxy: proxy, width: navigationCardWidth)
                             .scaleEffect(currentMonthID == nextYearButtonID ? 1 : 0.96)
-                            .zIndex(currentMonthID == nextYearButtonID ? 1 : 0)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
+                            .animation(.interpolatingSpring(stiffness: 300, damping: 30), value: currentMonthID)
                             .id(nextYearButtonID)
                     }
                     .scrollTargetLayout()
@@ -136,11 +141,23 @@ struct CalendarView: View {
                         return
                     }
                     guard (1...12).contains(newID) else { return }
+                    
+                    // Cancel previous debounce task
+                    debounceTask?.cancel()
+                    
+                    // Update date immediately for smooth animation
                     var components = DateComponents()
                     components.year = displayedYear
                     components.month = newID
                     components.day = 1
                     selectedMonth = calendar.date(from: components) ?? Date()
+                    
+                    // Preload adjacent months in background
+                    debounceTask = Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms delay for preloading
+                        guard !Task.isCancelled else { return }
+                        preloadAdjacentMonths(currentMonth: newID)
+                    }
                 }
                 .onAppear {
                     let today = Date()
@@ -207,15 +224,11 @@ struct CalendarView: View {
         components.month = targetMonth
         components.day = 1
         let targetDate = calendar.date(from: components) ?? Date()
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
             displayedYear = nextYear
             currentMonthID = targetMonth
             selectedMonth = targetDate
-        }
-        DispatchQueue.main.async {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                proxy.scrollTo(targetMonth, anchor: .center)
-            }
+            proxy.scrollTo(targetMonth, anchor: .center)
         }
     }
 
@@ -227,15 +240,11 @@ struct CalendarView: View {
         components.month = targetMonth
         components.day = 1
         let targetDate = calendar.date(from: components) ?? Date()
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
             displayedYear = previousYear
             currentMonthID = targetMonth
             selectedMonth = targetDate
-        }
-        DispatchQueue.main.async {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                proxy.scrollTo(targetMonth, anchor: .center)
-            }
+            proxy.scrollTo(targetMonth, anchor: .center)
         }
     }
 
@@ -245,7 +254,7 @@ struct CalendarView: View {
         components.month = month
         components.day = 1
         let monthDate = calendar.date(from: components) ?? Date()
-        let monthDates = monthDays(for: monthDate)
+        let monthDates = cachedMonthDays(for: monthDate, year: displayedYear, month: month)
         
         return VStack(spacing: 0) {
             Spacer()
@@ -272,21 +281,18 @@ struct CalendarView: View {
                         .frame(height: 24)
                 }
                 
-                ForEach(0..<42, id: \.self) { index in
-                    if index < monthDates.count {
-                        let date = monthDates[index]
-                        if calendar.isDate(date, equalTo: monthDate, toGranularity: .month) {
-                            DayCell(
-                                date: date,
-                                entry: entryForDate(date),
-                                onTap: { selectedDate = date }
-                            )
-                        } else {
-                            Color.clear
-                                .aspectRatio(1.0, contentMode: .fit)
-                        }
+                ForEach(monthDates.indices, id: \.self) { index in
+                    let date = monthDates[index]
+                    if calendar.isDate(date, equalTo: monthDate, toGranularity: .month) {
+                        DayCell(
+                            date: date,
+                            entry: entryForDate(date),
+                            onTap: { selectedDate = date }
+                        )
+                        .id("\(displayedYear)-\(month)-\(index)") // Stable ID for view recycling
                     } else {
-                        Color.clear
+                        Rectangle()
+                            .fill(Color.clear)
                             .aspectRatio(1.0, contentMode: .fit)
                     }
                 }
@@ -349,6 +355,23 @@ struct CalendarView: View {
         return monthDays(for: selectedMonth)
     }
     
+    private func cachedMonthDays(for month: Date, year: Int, month monthNum: Int) -> [Date] {
+        let cacheKey = "\(year)-\(monthNum)"
+        
+        if let cachedDates = monthDatesCache[cacheKey] {
+            return cachedDates
+        }
+        
+        let dates = monthDays(for: month)
+        
+        // Defer cache update to avoid state modification during view update
+        DispatchQueue.main.async {
+            monthDatesCache[cacheKey] = dates
+        }
+        
+        return dates
+    }
+    
     private func monthDays(for month: Date) -> [Date] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: month) else { return [] }
         
@@ -393,8 +416,10 @@ struct CalendarView: View {
         return entriesDict[dayKey]
     }
     
-    private var entriesDict: [String: DiaryEntry] {
-        Dictionary(entries.map { ($0.dayKey, $0) }) { first, _ in first }
+    @State private var entriesDict: [String: DiaryEntry] = [:]
+    
+    private func updateEntriesDict() {
+        entriesDict = Dictionary(entries.map { ($0.dayKey, $0) }) { first, _ in first }
     }
     
     
@@ -480,6 +505,30 @@ struct CalendarView: View {
         }
         thumbnailCache.preloadThumbnails(for: monthEntries)
     }
+    
+    private func preloadAdjacentMonths(currentMonth: Int) {
+        Task.detached(priority: .background) { @MainActor in
+            let adjacentMonths = [currentMonth - 1, currentMonth + 1].compactMap { month in
+                let adjustedMonth = ((month - 1 + 12) % 12) + 1
+                return (1...12).contains(adjustedMonth) ? adjustedMonth : nil
+            }
+            
+            for month in adjacentMonths {
+                var components = DateComponents()
+                components.year = displayedYear
+                components.month = month
+                components.day = 1
+                
+                if let monthDate = calendar.date(from: components) {
+                    let monthEntries = entries.filter { entry in
+                        calendar.isDate(entry.date, equalTo: monthDate, toGranularity: .month)
+                    }
+                    
+                    thumbnailCache.preloadThumbnails(for: monthEntries)
+                }
+            }
+        }
+    }
 }
 
 struct DayCell: View {
@@ -488,6 +537,8 @@ struct DayCell: View {
     let onTap: () -> Void
     
     @StateObject private var thumbnailCache = ThumbnailCache.shared
+    @State private var thumbnailImage: UIImage?
+    @State private var loadTask: Task<Void, Never>?
     private var calendar = Calendar.current
     
     init(date: Date, entry: DiaryEntry?, onTap: @escaping () -> Void) {
@@ -503,19 +554,10 @@ struct DayCell: View {
                 .overlay(
                     // Thumbnail image if exists
                     Group {
-                        if let entry = entry {
-                            if let cachedThumbnail = thumbnailCache.getThumbnail(for: entry.thumbnailFileName) {
-                                Image(uiImage: cachedThumbnail)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } else if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: entry.thumbnailFileName) {
-                                Image(uiImage: thumbnail)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .onAppear {
-                                        thumbnailCache.preloadThumbnails(for: [entry])
-                                    }
-                            }
+                        if let thumbnailImage = thumbnailImage {
+                            Image(uiImage: thumbnailImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
                         }
                     }
                 )
@@ -547,6 +589,43 @@ struct DayCell: View {
                 .aspectRatio(1.0, contentMode: .fit)
         }
         .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            // Only load if entry exists to reduce overhead
+            if entry != nil {
+                loadThumbnailAsync()
+            }
+        }
+        .onChange(of: entry?.thumbnailFileName) { _, _ in
+            loadThumbnailAsync()
+        }
+        .onDisappear {
+            loadTask?.cancel()
+        }
+    }
+    
+    private func loadThumbnailAsync() {
+        // Cancel previous task
+        loadTask?.cancel()
+        
+        guard let entry = entry else {
+            thumbnailImage = nil
+            return
+        }
+        
+        // Check cache first
+        if let cachedThumbnail = thumbnailCache.getThumbnail(for: entry.thumbnailFileName) {
+            thumbnailImage = cachedThumbnail
+            return
+        }
+        
+        // Load asynchronously with priority control
+        loadTask = Task(priority: .userInitiated) { @MainActor in
+            if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: entry.thumbnailFileName) {
+                guard !Task.isCancelled else { return }
+                thumbnailImage = thumbnail
+                thumbnailCache.cacheThumbnail(thumbnail, fileName: entry.thumbnailFileName)
+            }
+        }
     }
     
     private var isToday: Bool {

@@ -60,4 +60,8 @@ class ThumbnailCache: ObservableObject {
     func cacheImage(_ image: UIImage, fileName: String) {
         imageCache[fileName] = image
     }
+    
+    func cacheThumbnail(_ image: UIImage, fileName: String) {
+        thumbnailCache[fileName] = image
+    }
 }
