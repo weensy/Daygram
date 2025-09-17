@@ -11,10 +11,13 @@ struct CalendarView: View {
     @State private var showingSettings = false
     @State private var showingQuickAdd = false
     @State private var currentMonthID: Int? = Calendar.current.component(.month, from: Date())
+    @State private var displayedYear = Calendar.current.component(.year, from: Date())
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
     private let peekReveal: CGFloat = 32 // visible width of the next card
+    private let previousYearButtonID = 0
+    private let nextYearButtonID = 13
     
     private var calendar = Calendar.current
     
@@ -96,17 +99,29 @@ struct CalendarView: View {
     
     private var calendarCarousel: some View {
         GeometryReader { geo in
+            let cardWidth = max(geo.size.width - peekReveal, 0)
+            let navigationCardWidth = cardWidth * 0.24
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
                     HStack(spacing: cardSpacing) {
+                        previousYearReturnCard(proxy: proxy, width: navigationCardWidth)
+                            .scaleEffect(currentMonthID == previousYearButtonID ? 1 : 0.96)
+                            .zIndex(currentMonthID == previousYearButtonID ? 1 : 0)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
+                            .id(previousYearButtonID)
                         ForEach(1...12, id: \.self) { month in
                             calendarCard(for: month)
-                                .frame(width: geo.size.width - peekReveal)
-                                .scaleEffect(currentMonthID == month ? 1.05 : 0.95)
+                                .frame(width: cardWidth)
+                                .scaleEffect(currentMonthID == month ? 1 : 0.96)
                                 .zIndex(currentMonthID == month ? 1 : 0)
                                 .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
                                 .id(month)
                         }
+                        nextYearAdvanceCard(proxy: proxy, width: navigationCardWidth)
+                            .scaleEffect(currentMonthID == nextYearButtonID ? 1 : 0.96)
+                            .zIndex(currentMonthID == nextYearButtonID ? 1 : 0)
+                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
+                            .id(nextYearButtonID)
                     }
                     .scrollTargetLayout()
                     .frame(maxHeight: .infinity)
@@ -116,16 +131,21 @@ struct CalendarView: View {
                 .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
                 .scrollPosition(id: $currentMonthID, anchor: .center)
                 .onChange(of: currentMonthID) { _, newID in
-                    let month = newID ?? Calendar.current.component(.month, from: Date())
-                    let currentYear = Calendar.current.component(.year, from: Date())
+                    guard let newID else { return }
+                    if newID == previousYearButtonID || newID == nextYearButtonID {
+                        return
+                    }
+                    guard (1...12).contains(newID) else { return }
                     var components = DateComponents()
-                    components.year = currentYear
-                    components.month = month
+                    components.year = displayedYear
+                    components.month = newID
                     components.day = 1
-                    selectedMonth = Calendar.current.date(from: components) ?? Date()
+                    selectedMonth = calendar.date(from: components) ?? Date()
                 }
                 .onAppear {
-                    selectedMonth = Date()
+                    let today = Date()
+                    selectedMonth = today
+                    displayedYear = calendar.component(.year, from: today)
                     let currentMonth = Calendar.current.component(.month, from: Date())
                     currentMonthID = currentMonth
                     DispatchQueue.main.async {
@@ -136,11 +156,92 @@ struct CalendarView: View {
         }
         .frame(height: 520)
     }
+
+    private func previousYearReturnCard(proxy: ScrollViewProxy, width: CGFloat) -> some View {
+        Button {
+            returnToPreviousYear(proxy: proxy)
+        } label: {
+            VStack(spacing: 8) {
+                Spacer()
+                Image(systemName: "arrow.left.circle.fill")
+                    .font(.system(size: 36, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                Text("\(displayedYear - 1)")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 24)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(width: width)
+    }
+
+    private func nextYearAdvanceCard(proxy: ScrollViewProxy, width: CGFloat) -> some View {
+        Button {
+            advanceToNextYear(proxy: proxy)
+        } label: {
+            VStack(spacing: 8) {
+                Spacer()
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: 36, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                Text("\(displayedYear + 1)")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 24)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(width: width)
+    }
     
-    private func calendarCard(for month: Int) -> some View {
-        let currentYear = calendar.component(.year, from: Date())
+    private func advanceToNextYear(proxy: ScrollViewProxy) {
+        let nextYear = displayedYear + 1
+        let targetMonth = 1
         var components = DateComponents()
-        components.year = currentYear
+        components.year = nextYear
+        components.month = targetMonth
+        components.day = 1
+        let targetDate = calendar.date(from: components) ?? Date()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            displayedYear = nextYear
+            currentMonthID = targetMonth
+            selectedMonth = targetDate
+        }
+        DispatchQueue.main.async {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                proxy.scrollTo(targetMonth, anchor: .center)
+            }
+        }
+    }
+
+    private func returnToPreviousYear(proxy: ScrollViewProxy) {
+        let previousYear = displayedYear - 1
+        let targetMonth = 12
+        var components = DateComponents()
+        components.year = previousYear
+        components.month = targetMonth
+        components.day = 1
+        let targetDate = calendar.date(from: components) ?? Date()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            displayedYear = previousYear
+            currentMonthID = targetMonth
+            selectedMonth = targetDate
+        }
+        DispatchQueue.main.async {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                proxy.scrollTo(targetMonth, anchor: .center)
+            }
+        }
+    }
+
+    private func calendarCard(for month: Int) -> some View {
+        var components = DateComponents()
+        components.year = displayedYear
         components.month = month
         components.day = 1
         let monthDate = calendar.date(from: components) ?? Date()
