@@ -10,7 +10,7 @@ struct CalendarView: View {
     @State private var selectedDate: Date?
     @State private var showingSettings = false
     @State private var showingQuickAdd = false
-    @State private var currentMonthID: Int? = 0
+    @State private var currentMonthID: Int? = Calendar.current.component(.month, from: Date())
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -96,38 +96,54 @@ struct CalendarView: View {
     
     private var calendarCarousel: some View {
         GeometryReader { geo in
-            ScrollView(.horizontal) {
-                HStack(spacing: cardSpacing) {
-                    ForEach(-12...12, id: \.self) { monthOffset in
-                        calendarCard(for: monthOffset)
-                            .frame(width: geo.size.width - peekReveal)
-                            .scaleEffect(currentMonthID == monthOffset ? 1 : 0.96)
-                            .zIndex(currentMonthID == monthOffset ? 1 : 0)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
-                            .id(monthOffset)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    HStack(spacing: cardSpacing) {
+                        ForEach(1...12, id: \.self) { month in
+                            calendarCard(for: month)
+                                .frame(width: geo.size.width - peekReveal)
+                                .scaleEffect(currentMonthID == month ? 1.05 : 0.95)
+                                .zIndex(currentMonthID == month ? 1 : 0)
+                                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentMonthID)
+                                .id(month)
+                        }
+                    }
+                    .scrollTargetLayout()
+                    .frame(maxHeight: .infinity)
+                }
+                .contentMargins(.horizontal, peekReveal / 2) // center each card within viewport
+                .scrollIndicators(.hidden)
+                .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+                .scrollPosition(id: $currentMonthID, anchor: .center)
+                .onChange(of: currentMonthID) { _, newID in
+                    let month = newID ?? Calendar.current.component(.month, from: Date())
+                    let currentYear = Calendar.current.component(.year, from: Date())
+                    var components = DateComponents()
+                    components.year = currentYear
+                    components.month = month
+                    components.day = 1
+                    selectedMonth = Calendar.current.date(from: components) ?? Date()
+                }
+                .onAppear {
+                    selectedMonth = Date()
+                    let currentMonth = Calendar.current.component(.month, from: Date())
+                    currentMonthID = currentMonth
+                    DispatchQueue.main.async {
+                        proxy.scrollTo(currentMonth, anchor: .center)
                     }
                 }
-                .scrollTargetLayout()
-                .frame(maxHeight: .infinity)
-            }
-            .contentMargins(.horizontal, peekReveal / 2) // center each card within viewport
-            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-            .scrollPosition(id: $currentMonthID)
-            .onChange(of: currentMonthID) { _, newID in
-                let index = newID ?? 0
-                selectedMonth = calendar.date(byAdding: .month, value: index, to: Date()) ?? Date()
-            }
-            .onAppear {
-                currentMonthID = 0
-                selectedMonth = Date()
             }
         }
         .frame(height: 520)
     }
     
-    private func calendarCard(for monthOffset: Int) -> some View {
-        let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
+    private func calendarCard(for month: Int) -> some View {
+        let currentYear = calendar.component(.year, from: Date())
+        var components = DateComponents()
+        components.year = currentYear
+        components.month = month
+        components.day = 1
+        let monthDate = calendar.date(from: components) ?? Date()
         let monthDates = monthDays(for: monthDate)
         
         return VStack(spacing: 0) {
