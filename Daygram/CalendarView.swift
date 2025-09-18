@@ -47,6 +47,7 @@ struct CalendarView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 16)
                 
+                Spacer()
                 calendarCarousel
                 Spacer()
                 
@@ -68,7 +69,7 @@ struct CalendarView: View {
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
                 }
-                .padding(.bottom, 24)
+                .padding(.vertical, 32)
             }
             .navigationBarHidden(true)
             .sheet(item: Binding<DateWrapper?>(
