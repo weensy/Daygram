@@ -20,6 +20,9 @@ struct CalendarView: View {
     private let peekReveal: CGFloat = 32 // visible width of the next card
     private let previousYearButtonID = 0
     private let nextYearButtonID = 13
+    private var navigationButtonSidePadding: CGFloat {
+        max((peekReveal / 2) - cardSpacing, 0)
+    }
     
     private var calendar = Calendar.current
     
@@ -193,6 +196,7 @@ struct CalendarView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .frame(width: width)
+        .padding(.trailing, navigationButtonSidePadding)
     }
 
     private func nextYearAdvanceCard(proxy: ScrollViewProxy, width: CGFloat) -> some View {
@@ -214,6 +218,7 @@ struct CalendarView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .frame(width: width)
+        .padding(.leading, navigationButtonSidePadding)
     }
     
     private func advanceToNextYear(proxy: ScrollViewProxy) {
