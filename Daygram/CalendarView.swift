@@ -54,17 +54,19 @@ struct CalendarView: View {
                 // Quick Add Button
                 VStack(spacing: 16) {
                     Button(action: {
-                        if hasTodayEntry {
+                        if !isCurrentMonthDisplayed {
+                            navigateToCurrentMonth()
+                        } else if hasTodayEntry {
                             selectedDate = Date()
                         } else {
                             showingQuickAdd = true
                         }
                     }) {
-                        Image(systemName: hasTodayEntry ? "checkmark" : "plus")
+                        Image(systemName: !isCurrentMonthDisplayed ? "arrow.uturn.backward" : (hasTodayEntry ? "checkmark" : "plus"))
                             .font(.system(size: 24, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 56, height: 56)
-                            .background(hasTodayEntry ? Color.accentColor : Color.accentColor)
+                            .background(Color.accentColor)
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
@@ -253,6 +255,24 @@ struct CalendarView: View {
             proxy.scrollTo(targetMonth, anchor: .center)
         }
     }
+    
+    private func navigateToCurrentMonth() {
+        let today = Date()
+        let currentMonth = calendar.component(.month, from: today)
+        let currentYear = calendar.component(.year, from: today)
+        
+        var components = DateComponents()
+        components.year = currentYear
+        components.month = currentMonth
+        components.day = 1
+        let targetDate = calendar.date(from: components) ?? today
+        
+        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
+            displayedYear = currentYear
+            currentMonthID = currentMonth
+            selectedMonth = targetDate
+        }
+    }
 
     private func calendarCard(for month: Int) -> some View {
         var components = DateComponents()
@@ -433,6 +453,13 @@ struct CalendarView: View {
         let today = Date()
         let todayKey = DiaryEntry.dayKey(for: today)
         return entries.contains { $0.dayKey == todayKey }
+    }
+    
+    private var isCurrentMonthDisplayed: Bool {
+        let today = Date()
+        let currentMonth = calendar.component(.month, from: today)
+        let currentYear = calendar.component(.year, from: today)
+        return currentMonth == currentMonthID && currentYear == displayedYear
     }
     
     private var currentStreak: Int {
