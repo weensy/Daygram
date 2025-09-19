@@ -17,7 +17,7 @@ struct CalendarView: View {
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
-    private let peekReveal: CGFloat = 32 // visible width of the next card
+    private let peekReveal: CGFloat = 40 // visible width of the next card
     private let previousYearButtonID = 0
     private let nextYearButtonID = 13
     private var navigationButtonSidePadding: CGFloat {
@@ -303,13 +303,13 @@ struct CalendarView: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 8)
             
             Spacer()
         }
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+        // .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 0) // remove outer horizontal padding to expose peek
         .padding(.top, 12)
         .padding(.bottom, 24)
