@@ -16,11 +16,12 @@ struct AddEntryView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isLoading = false
     
-    private let textLimit = 500
+    private let textLimit = 100
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                Spacer()
                 if let selectedImage = selectedImage {
                     imagePreviewSection(selectedImage)
                 } else {
@@ -31,7 +32,7 @@ struct AddEntryView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Add Entry")
+            .navigationTitle("New Memory")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -56,15 +57,6 @@ struct AddEntryView: View {
                 selection: $selectedPhotoItem,
                 matching: .images
             )
-            .confirmationDialog("Select Photo Source", isPresented: $showingSourcePicker) {
-                Button("Camera") {
-                    showingImagePicker = true
-                }
-                Button("Photo Library") {
-                    showingPhotoPicker = true
-                }
-                Button("Cancel", role: .cancel) { }
-            }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {
                     if let newItem = newItem {
@@ -80,7 +72,7 @@ struct AddEntryView: View {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxHeight: 300)
+                // .frame(maxHeight: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
             
@@ -89,8 +81,17 @@ struct AddEntryView: View {
             }
             .font(.headline)
             .foregroundColor(.accentColor)
+            .confirmationDialog("Change Photo", isPresented: $showingSourcePicker) {
+                Button("Camera") {
+                    showingImagePicker = true
+                }
+                Button("Photo Library") {
+                    showingPhotoPicker = true
+                }
+                Button("Cancel", role: .cancel) { }
+            }
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 24)
     }
     
     private var imageSelectionSection: some View {
@@ -98,19 +99,8 @@ struct AddEntryView: View {
             Image(systemName: "photo.badge.plus")
                 .font(.system(size: 64))
                 .foregroundColor(.secondary)
-            
-            VStack(spacing: 8) {
-                Text("Add a Photo")
-                    .font(.title2)
-                    .fontWeight(.medium)
-                
-                Text("Capture a moment or choose from your library")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            Button("Select Photo") {
+
+            Button("Add a Photo") {
                 showingSourcePicker = true
             }
             .font(.headline)
@@ -119,35 +109,41 @@ struct AddEntryView: View {
             .padding(.vertical, 12)
             .background(Color.accentColor)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .confirmationDialog("Add a Photo", isPresented: $showingSourcePicker) {
+                Button("Camera") {
+                    showingImagePicker = true
+                }
+                Button("Photo Library") {
+                    showingPhotoPicker = true
+                }
+                Button("Cancel", role: .cancel) { }
+            }
         }
-        .padding(.vertical, 40)
+        
+        .padding(.vertical, 24)
     }
     
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Add a note")
-                    .font(.headline)
-                
-                Spacer()
-                
-                Text("\(entryText.count)/\(textLimit)")
-                    .font(.caption)
-                    .foregroundColor(entryText.count > textLimit ? .red : .secondary)
-            }
-            
-            TextField("What happened today?", text: $entryText, axis: .vertical)
+            TextField("Write a Line", text: $entryText, axis: .vertical)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .lineLimit(5...10)
+                .lineLimit(3...5)
                 .onChange(of: entryText) { _, newValue in
                     if newValue.count > textLimit {
                         entryText = String(newValue.prefix(textLimit))
                     }
                 }
+
+            HStack{
+                Spacer()
+                Text("\(entryText.count)/\(textLimit)")
+                    .font(.caption)
+                    .foregroundColor(entryText.count > textLimit ? .red : .secondary)
+            }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(.systemGray6))
+        .padding(.vertical, 24)
+        
     }
     
     private func loadPhotoFromPicker(_ item: PhotosPickerItem) async {
