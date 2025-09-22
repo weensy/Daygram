@@ -3,75 +3,51 @@ import SwiftData
 
 struct EntryDetailView: View {
     @Bindable var entry: DiaryEntry
+    var onDismiss: (() -> Void)? = nil
+    @Binding var isEditing: Bool
+    @Binding var editedText: String
+    var onSave: (() -> Void)?
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @StateObject private var imageCache = ThumbnailCache.shared
     
-    @State private var isEditing = false
-    @State private var editedText = ""
-    @State private var showingDeleteAlert = false
-    @State private var showingShareSheet = false
     @State private var displayImage: UIImage?
     
-    private let textLimit = 500
+    private let textLimit = 100
+
+    @Environment(\.dynamicTypeSize) private var dts
+    @State private var extra: CGFloat = 0
+    let multiple: CGFloat = 1.48
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    imageSection
-                    textSection
-                    metadataSection
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 20)
+        VStack(spacing: 0) {
+
+            VStack(spacing: 0) {
+                imageSection
+                textSection
             }
-            .navigationTitle(dateTitle)
-            .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Done") {
-                    dismiss()
-                }
-            }
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button(action: { isEditing.toggle() }) {
-                        Label(isEditing ? "Cancel Edit" : "Edit Text", systemImage: isEditing ? "xmark" : "pencil")
-                    }
-                    
-                    Button(action: { showingShareSheet = true }) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                    }
-                    
-                    Button(role: .destructive, action: { showingDeleteAlert = true }) {
-                        Label("Delete", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
-        }
-        .alert("Delete Entry", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                deleteEntry()
-            }
-        } message: {
-            Text("This will permanently delete this memory. This action cannot be undone.")
-        }
-        .sheet(isPresented: $showingShareSheet) {
-            if let image = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName) {
-                ShareSheet(items: [image, entry.text])
-            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 20)
+
+            footerSection
         }
         .onAppear {
-            editedText = entry.text
             loadImage()
         }
+    }
+    
+    private var footerSection: some View {
+        HStack {
+            Spacer()
+
+            Text(dateTitle)
+                .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .subheadline).pointSize, relativeTo: .subheadline))
         }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
     }
     
     private var imageSection: some View {
@@ -80,8 +56,8 @@ struct EntryDetailView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(radius: 4)
+                    // .clipShape(RoundedRectangle(cornerRadius: 12))
+                    // .shadow(radius: 4)
             } else {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.3))
@@ -97,10 +73,10 @@ struct EntryDetailView: View {
     private var textSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Note")
-                    .font(.headline)
+                // Text("Note")
+                //     .font(.headline)
                 
-                Spacer()
+                // Spacer()
                 
                 if isEditing {
                     HStack(spacing: 12) {
@@ -111,7 +87,7 @@ struct EntryDetailView: View {
                         .foregroundColor(.secondary)
                         
                         Button("Save") {
-                            saveText()
+                            onSave?()
                         }
                         .fontWeight(.medium)
                         .disabled(editedText.count > textLimit)
@@ -123,7 +99,7 @@ struct EntryDetailView: View {
                 VStack(alignment: .trailing, spacing: 8) {
                     TextField("Add your thoughts...", text: $editedText, axis: .vertical)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .lineLimit(5...15)
+                        .lineLimit(3...5)
                     
                     Text("\(editedText.count)/\(textLimit)")
                         .font(.caption)
@@ -135,102 +111,32 @@ struct EntryDetailView: View {
                         .foregroundColor(.secondary)
                         .italic()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
                 } else {
                     Text(entry.text)
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
+                        // .font(.body)
+                        .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
+                        .lineSpacing(extra)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .onAppear(perform: recalc)
+                        .onChange(of: dts) { _ in recalc() }
                 }
             }
         }
-        .padding(16)
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 8)
     }
     
-    private var metadataSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "calendar")
-                    .foregroundColor(.secondary)
-                Text(dateString)
-                    .font(.body)
-            }
-            
-            HStack {
-                Image(systemName: "clock")
-                    .foregroundColor(.secondary)
-                Text(timeString)
-                    .font(.body)
-            }
-            
-            if entry.updatedAt != entry.createdAt {
-                HStack {
-                    Image(systemName: "pencil")
-                        .foregroundColor(.secondary)
-                    Text("Edited \(updatedTimeString)")
-                        .font(.body)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+    private func recalc() {
+        let lh = UIFont.preferredFont(forTextStyle: .title3).lineHeight
+        extra = (multiple - 1.0) * lh
     }
-    
+
     private var dateTitle: String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .long
+        formatter.dateFormat = "MM.dd.yyyy"
         return formatter.string(from: entry.date)
     }
     
-    private var dateString: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        return formatter.string(from: entry.date)
-    }
-    
-    private var timeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: entry.createdAt)
-    }
-    
-    private var updatedTimeString: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: entry.updatedAt, relativeTo: Date())
-    }
-    
-    private func saveText() {
-        let trimmedText = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        entry.updateText(trimmedText)
-        
-        do {
-            try modelContext.save()
-            isEditing = false
-        } catch {
-            print("Error saving text: \(error)")
-        }
-    }
-    
-    private func deleteEntry() {
-        ImageStorageManager.shared.deleteEntry(
-            imageFileName: entry.imageFileName,
-            thumbnailFileName: entry.thumbnailFileName
-        )
-        
-        modelContext.delete(entry)
-        
-        do {
-            try modelContext.save()
-            dismiss()
-        } catch {
-            print("Error deleting entry: \(error)")
-        }
-    }
     
     private func loadImage() {
         // Check cached image first
@@ -255,24 +161,19 @@ struct EntryDetailView: View {
     }
 }
 
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
 #Preview {
-    NavigationStack {
-        EntryDetailView(entry: DiaryEntry(
+    @State var isEditing = false
+    @State var editedText = ""
+    
+    return EntryDetailView(
+        entry: DiaryEntry(
             date: Date(),
             text: "This is a sample diary entry with some text to show how it looks in the detail view.",
             imageFileName: "sample.jpg",
             thumbnailFileName: "sample_thumb.jpg"
-        ))
-    }
+        ),
+        isEditing: $isEditing,
+        editedText: $editedText
+    )
     .modelContainer(for: DiaryEntry.self, inMemory: true)
 }

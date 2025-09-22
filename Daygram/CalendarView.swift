@@ -7,13 +7,19 @@ struct CalendarView: View {
     
     @StateObject private var thumbnailCache = ThumbnailCache.shared
     @State private var selectedMonth = Date()
-    @State private var selectedDate: Date?
+    @State private var selectedEntry: DiaryEntry?
+    @State private var dateForNewEntry: Date?
     @State private var showingSettings = false
     @State private var showingQuickAdd = false
     @State private var currentMonthID: Int? = Calendar.current.component(.month, from: Date())
     @State private var displayedYear = Calendar.current.component(.year, from: Date())
     @State private var debounceTask: Task<Void, Never>?
     @State private var monthDatesCache: [String: [Date]] = [:]
+    @State private var entriesDict: [String: DiaryEntry] = [:]
+    @State private var showingDeleteAlert = false
+    @State private var showingShareSheet = false
+    @State private var isEditingEntry = false
+    @State private var editedText = ""
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -28,72 +34,91 @@ struct CalendarView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Custom Header with year and settings icon
-                HStack {
-                    Text(yearText)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+            ZStack {
+                VStack(spacing: 0) {
+                    // Custom Header with year and settings icon
+                    HStack {
+                        Text(yearText)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                        
+                        Spacer()
+                        
+                        Button(action: { showingSettings = true }) {
+                            Image(systemName: "gearshape")
+                                .font(.title2)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
                     
                     Spacer()
+                    calendarCarousel
+                    Spacer()
                     
-                    Button(action: { showingSettings = true }) {
-                        Image(systemName: "gearshape")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 16)
-                
-                Spacer()
-                calendarCarousel
-                Spacer()
-                
-                // Quick Add Button
-                VStack(spacing: 16) {
-                    Button(action: {
-                        if !isCurrentMonthDisplayed {
-                            navigateToCurrentMonth()
-                        } else if hasTodayEntry {
-                            selectedDate = Date()
-                        } else {
-                            showingQuickAdd = true
+                    // Quick Add Button
+                    VStack(spacing: 16) {
+                        Button(action: {
+                            if !isCurrentMonthDisplayed {
+                                navigateToCurrentMonth()
+                            } else if let todayEntry = entryForDate(Date()) {
+                                thumbnailCache.preloadImage(for: todayEntry)
+                                withAnimation(.easeInOut) {
+                                    selectedEntry = todayEntry
+                                }
+                            } else {
+                                showingQuickAdd = true
+                            }
+                        }) {
+                            Image(systemName: !isCurrentMonthDisplayed ? "arrow.uturn.backward" : (hasTodayEntry ? "checkmark" : "plus"))
+                                .font(.system(size: 24, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Color.accentColor)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                         }
-                    }) {
-                        Image(systemName: !isCurrentMonthDisplayed ? "arrow.uturn.backward" : (hasTodayEntry ? "checkmark" : "plus"))
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Color.accentColor)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                     }
+                    .padding(.vertical, 32)
                 }
-                .padding(.vertical, 32)
+                .disabled(selectedEntry != nil)
+                
+                if let entry = selectedEntry {
+                    entryDetailOverlay(for: entry)
+                        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.98)), removal: .opacity))
+                        .zIndex(1)
+                }
             }
             .navigationBarHidden(true)
             .sheet(item: Binding<DateWrapper?>(
-                get: { selectedDate.map(DateWrapper.init) },
-                set: { selectedDate = $0?.date }
+                get: { dateForNewEntry.map(DateWrapper.init) },
+                set: { dateForNewEntry = $0?.date }
             )) { dateWrapper in
-                let existingEntry = entryForDate(dateWrapper.date)
-                if let entry = existingEntry {
-                    EntryDetailView(entry: entry)
-                        .onAppear {
-                            // Preload image
-                            thumbnailCache.preloadImage(for: entry)
-                        }
-                } else {
-                    AddEntryView(date: dateWrapper.date)
-                }
+                AddEntryView(date: dateWrapper.date)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
             }
             .sheet(isPresented: $showingQuickAdd) {
                 AddEntryView(date: Date())
+            }
+            .alert("Delete Entry", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    if let entry = selectedEntry {
+                        deleteEntry(entry)
+                    }
+                }
+            } message: {
+                Text("This will permanently delete this memory. This action cannot be undone.")
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                if let entry = selectedEntry,
+                   let image = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName) {
+                    ShareSheet(items: [image, entry.text])
+                }
             }
             .onAppear {
                 updateEntriesDict()
@@ -178,6 +203,115 @@ struct CalendarView: View {
             }
         }
         .frame(height: 520)
+    }
+
+    @ViewBuilder
+    private func entryDetailOverlay(for entry: DiaryEntry) -> some View {
+        GeometryReader { geometry in
+            let rawWidth = geometry.size.width - 32
+            let width = rawWidth > 0 ? min(rawWidth, 620) : geometry.size.width
+            let rawHeight = geometry.size.height - 80
+            let height = rawHeight > 0 ? min(rawHeight, geometry.size.height * 0.95) : geometry.size.height
+
+            ZStack {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        dismissEntryDetail()
+                    }
+
+                ZStack(alignment: .topTrailing) {
+                    EntryDetailView(
+                        entry: entry, 
+                        onDismiss: dismissEntryDetail,
+                        isEditing: $isEditingEntry,
+                        editedText: $editedText,
+                        onSave: { saveEntryText(for: entry) }
+                    )
+                        .frame(maxWidth: width)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background(Color(.systemBackground))
+                        // .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        // .shadow(color: .black.opacity(0.25), radius: 18, x: 0, y: 12)
+                        .background(
+                            Color.white
+                                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        )
+                    
+                    // Menu button overlay
+                    Menu {
+                        Button(action: { 
+                            isEditingEntry.toggle()
+                            if isEditingEntry {
+                                editedText = entry.text
+                            }
+                        }) {
+                            Label(isEditingEntry ? "Cancel Edit" : "Edit Text", systemImage: isEditingEntry ? "xmark" : "pencil")
+                        }
+                        
+                        Button(action: { 
+                            showingShareSheet = true
+                        }) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        
+                        Button(role: .destructive, action: { 
+                            showingDeleteAlert = true
+                        }) {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .padding(16)
+                            .background(Color(.systemBackground))
+                            .clipShape(Circle())
+                    }
+                    .padding(.top, 12)
+                    .padding(.trailing, 16)
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+
+    private func dismissEntryDetail() {
+        withAnimation(.easeInOut) {
+            selectedEntry = nil
+            isEditingEntry = false
+            editedText = ""
+        }
+    }
+    
+    private func saveEntryText(for entry: DiaryEntry) {
+        let trimmedText = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        entry.updateText(trimmedText)
+        
+        do {
+            try modelContext.save()
+            isEditingEntry = false
+            updateEntriesDict()
+        } catch {
+            print("Error saving text: \(error)")
+        }
+    }
+    
+    private func deleteEntry(_ entry: DiaryEntry) {
+        ImageStorageManager.shared.deleteEntry(
+            imageFileName: entry.imageFileName,
+            thumbnailFileName: entry.thumbnailFileName
+        )
+        
+        modelContext.delete(entry)
+        
+        do {
+            try modelContext.save()
+            dismissEntryDetail()
+            updateEntriesDict()
+        } catch {
+            print("Error deleting entry: \(error)")
+        }
     }
 
     private func previousYearReturnCard(proxy: ScrollViewProxy, width: CGFloat) -> some View {
@@ -310,10 +444,20 @@ struct CalendarView: View {
                 ForEach(monthDates.indices, id: \.self) { index in
                     let date = monthDates[index]
                     if calendar.isDate(date, equalTo: monthDate, toGranularity: .month) {
+                        let entry = entryForDate(date)
                         DayCell(
                             date: date,
-                            entry: entryForDate(date),
-                            onTap: { selectedDate = date }
+                            entry: entry,
+                            onTap: {
+                                if let entry {
+                                    thumbnailCache.preloadImage(for: entry)
+                                    withAnimation(.easeInOut) {
+                                        selectedEntry = entry
+                                    }
+                                } else {
+                                    dateForNewEntry = date
+                                }
+                            }
                         )
                         .id("\(displayedYear)-\(month)-\(index)") // Stable ID for view recycling
                     } else {
@@ -442,8 +586,6 @@ struct CalendarView: View {
         return entriesDict[dayKey]
     }
     
-    @State private var entriesDict: [String: DiaryEntry] = [:]
-    
     private func updateEntriesDict() {
         entriesDict = Dictionary(entries.map { ($0.dayKey, $0) }) { first, _ in first }
     }
@@ -562,6 +704,16 @@ struct CalendarView: View {
             }
         }
     }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct DayCell: View {
