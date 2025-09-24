@@ -76,8 +76,14 @@ struct CalendarView: View {
                                 .font(.system(size: 24, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(width: 56, height: 56)
-                                .background(Color.accentColor)
-                                .clipShape(Circle())
+                                // .background(Color.accentColor)
+                                .glassEffect(
+                                    (selectedEntry != nil
+                                        ? .regular.tint(.blue.opacity(0.8))
+                                        : .regular.tint(.blue.opacity(0.8)).interactive()
+                                    ),
+                                    in: .circle
+                                )
                                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                         }
                     }
@@ -220,7 +226,7 @@ struct CalendarView: View {
                         dismissEntryDetail()
                     }
 
-                ZStack(alignment: .topTrailing) {
+                VStack(spacing: 12) {
                     EntryDetailView(
                         entry: entry, 
                         onDismiss: dismissEntryDetail,
@@ -231,45 +237,43 @@ struct CalendarView: View {
                         .frame(maxWidth: width)
                         .fixedSize(horizontal: false, vertical: true)
                         .background(Color(.systemBackground))
-                        // .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        // .shadow(color: .black.opacity(0.25), radius: 18, x: 0, y: 12)
                         .background(
                             Color.white
                                 .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                         )
                     
-                    // Menu button overlay
-                    Menu {
-                        Button(action: { 
-                            isEditingEntry.toggle()
-                            if isEditingEntry {
-                                editedText = entry.text
+                    HStack {
+                        Menu {
+                            Button(action: { 
+                                isEditingEntry.toggle()
+                                if isEditingEntry {
+                                    editedText = entry.text
+                                }
+                            }) {
+                                Label(isEditingEntry ? "Cancel Edit" : "Edit Text", systemImage: isEditingEntry ? "xmark" : "pencil")
                             }
-                        }) {
-                            Label(isEditingEntry ? "Cancel Edit" : "Edit Text", systemImage: isEditingEntry ? "xmark" : "pencil")
+                            
+                            Button(action: { 
+                                showingShareSheet = true
+                            }) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                            
+                            Button(role: .destructive, action: { 
+                                showingDeleteAlert = true
+                            }) {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.blue)
+                                .padding(16)
+                                .contentShape(Circle())
+                                .glassEffect(.regular, in: .circle)
+                                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                         }
-                        
-                        Button(action: { 
-                            showingShareSheet = true
-                        }) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        
-                        Button(role: .destructive, action: { 
-                            showingDeleteAlert = true
-                        }) {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                            .padding(16)
-                            .background(Color(.systemBackground))
-                            .clipShape(Circle())
                     }
-                    .padding(.top, 12)
-                    .padding(.trailing, 16)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)

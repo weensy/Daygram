@@ -107,10 +107,14 @@ struct EntryDetailView: View {
                 }
             } else {
                 if entry.text.isEmpty {
-                    Text("No note added")
-                        .foregroundColor(.secondary)
-                        .italic()
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    // Text("No note added")
+                    //     .foregroundColor(.secondary)
+                    //     .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
+                    //     .lineSpacing(extra)
+                    //     .multilineTextAlignment(.center)
+                    //     .frame(maxWidth: .infinity)
+                    //     .onAppear(perform: recalc)
+                    //     .onChange(of: dts) { _ in recalc() }
                 } else {
                     Text(entry.text)
                         // .font(.body)
