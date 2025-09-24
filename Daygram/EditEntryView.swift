@@ -125,7 +125,7 @@ struct EditEntryView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .lineLimit(3...5)
                 .onAppear(perform: recalc)
-                .onChange(of: dts) { _ in recalc() }
+                .onChange(of: dts) { recalc() }
                 .onChange(of: editedText) { _, newValue in
                     if newValue.count > textLimit {
                         editedText = String(newValue.prefix(textLimit))
@@ -210,7 +210,7 @@ struct EditEntryView: View {
 }
 
 #Preview {
-    @State var entry = DiaryEntry(
+    @Previewable @State var entry = DiaryEntry(
         date: Date(),
         text: "Sample entry text for editing",
         imageFileName: "sample.jpg",

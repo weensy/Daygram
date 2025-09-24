@@ -140,7 +140,7 @@ struct AddEntryView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .lineLimit(3...5)
                 .onAppear(perform: recalc)
-                .onChange(of: dts) { _ in recalc() }
+                .onChange(of: dts) { recalc() }
                 .onChange(of: entryText) { _, newValue in
                     if newValue.count > textLimit {
                         entryText = String(newValue.prefix(textLimit))

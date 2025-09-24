@@ -126,7 +126,7 @@ struct EntryDetailView: View {
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
                         .onAppear(perform: recalc)
-                        .onChange(of: dts) { _ in recalc() }
+                        .onChange(of: dts) { recalc() }
                 }
             }
         }
@@ -163,8 +163,8 @@ struct EntryDetailView: View {
 }
 
 #Preview {
-    @State var isEditing = false
-    @State var editedText = ""
+    @Previewable @State var isEditing = false
+    @Previewable @State var editedText = ""
     
     return EntryDetailView(
         entry: DiaryEntry(

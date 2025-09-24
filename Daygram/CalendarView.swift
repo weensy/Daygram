@@ -221,7 +221,7 @@ struct CalendarView: View {
             let rawWidth = geometry.size.width - 32
             let width = rawWidth > 0 ? min(rawWidth, 620) : geometry.size.width
             let rawHeight = geometry.size.height - 80
-            let height = rawHeight > 0 ? min(rawHeight, geometry.size.height * 0.95) : geometry.size.height
+            let _ = rawHeight > 0 ? min(rawHeight, geometry.size.height * 0.95) : geometry.size.height
 
             ZStack {
                 Color.black.opacity(0.35)

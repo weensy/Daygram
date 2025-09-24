@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class DiaryEntry: @unchecked Sendable {
+final class DiaryEntry {
     var id: UUID
     var date: Date
     var text: String
