@@ -18,8 +18,7 @@ struct CalendarView: View {
     @State private var entriesDict: [String: DiaryEntry] = [:]
     @State private var showingDeleteAlert = false
     @State private var showingShareSheet = false
-    @State private var isEditingEntry = false
-    @State private var editedText = ""
+    @State private var showingEditEntry = false
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -126,6 +125,11 @@ struct CalendarView: View {
                     ShareSheet(items: [image, entry.text])
                 }
             }
+            .sheet(isPresented: $showingEditEntry) {
+                if let entry = selectedEntry {
+                    EditEntryView(entry: entry)
+                }
+            }
             .onAppear {
                 updateEntriesDict()
                 preloadCurrentMonthThumbnails()
@@ -230,9 +234,9 @@ struct CalendarView: View {
                     EntryDetailView(
                         entry: entry, 
                         onDismiss: dismissEntryDetail,
-                        isEditing: $isEditingEntry,
-                        editedText: $editedText,
-                        onSave: { saveEntryText(for: entry) }
+                        isEditing: .constant(false),
+                        editedText: .constant(""),
+                        onSave: nil
                     )
                         .frame(maxWidth: width)
                         .fixedSize(horizontal: false, vertical: true)
@@ -245,12 +249,9 @@ struct CalendarView: View {
                     HStack {
                         Menu {
                             Button(action: { 
-                                isEditingEntry.toggle()
-                                if isEditingEntry {
-                                    editedText = entry.text
-                                }
+                                showingEditEntry = true
                             }) {
-                                Label(isEditingEntry ? "Cancel Edit" : "Edit Text", systemImage: isEditingEntry ? "xmark" : "pencil")
+                                Label("Edit", systemImage: "pencil")
                             }
                             
                             Button(action: { 
@@ -283,23 +284,9 @@ struct CalendarView: View {
     private func dismissEntryDetail() {
         withAnimation(.easeInOut) {
             selectedEntry = nil
-            isEditingEntry = false
-            editedText = ""
         }
     }
     
-    private func saveEntryText(for entry: DiaryEntry) {
-        let trimmedText = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        entry.updateText(trimmedText)
-        
-        do {
-            try modelContext.save()
-            isEditingEntry = false
-            updateEntriesDict()
-        } catch {
-            print("Error saving text: \(error)")
-        }
-    }
     
     private func deleteEntry(_ entry: DiaryEntry) {
         ImageStorageManager.shared.deleteEntry(

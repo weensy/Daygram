@@ -36,6 +36,9 @@ struct EntryDetailView: View {
         .onAppear {
             loadImage()
         }
+        .onChange(of: entry.imageFileName) { _, _ in
+            loadImage()
+        }
     }
     
     private var footerSection: some View {
@@ -143,12 +146,6 @@ struct EntryDetailView: View {
     
     
     private func loadImage() {
-        // Check cached image first
-        if let cachedImage = imageCache.getImage(for: entry.imageFileName) {
-            displayImage = cachedImage
-            return
-        }
-        
         // Load image in background
         Task {
             let fileName = entry.imageFileName // Extract from main actor context
@@ -158,7 +155,7 @@ struct EntryDetailView: View {
             
             displayImage = image
             if let image = image {
-                // Cache the image
+                // Update cache with new image
                 imageCache.cacheImage(image, fileName: fileName)
             }
         }

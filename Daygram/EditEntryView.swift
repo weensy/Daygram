@@ -1,20 +1,21 @@
 import SwiftUI
+import SwiftData
 import PhotosUI
-import UIKit
 
-struct AddEntryView: View {
-    let date: Date
+struct EditEntryView: View {
+    @Bindable var entry: DiaryEntry
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
-    @State private var selectedImage: UIImage?
-    @State private var entryText = ""
+    @State private var editedText: String = ""
+    @State private var currentImage: UIImage?
+    @State private var newImage: UIImage?
+    @State private var isLoading = false
     @State private var showingImagePicker = false
     @State private var showingPhotoPicker = false
     @State private var showingSourcePicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var isLoading = false
     
     @Environment(\.dynamicTypeSize) private var dts
     @State private var extra: CGFloat = 0
@@ -26,17 +27,19 @@ struct AddEntryView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 Spacer()
-                if let selectedImage = selectedImage {
-                    imagePreviewSection(selectedImage)
+                
+                // Display current or new image
+                if let image = newImage ?? currentImage {
+                    imagePreviewSection(image)
                 } else {
-                    imageSelectionSection
+                    imageLoadingSection
                 }
                 
                 textInputSection
                 
                 Spacer()
             }
-            .navigationTitle("New Memory")
+            .navigationTitle("Edit Memory")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -49,12 +52,12 @@ struct AddEntryView: View {
                     Button("Save") {
                         saveEntry()
                     }
-                    .disabled(selectedImage == nil || isLoading)
+                    .disabled(isLoading)
                     .fontWeight(.medium)
                 }
             }
             .sheet(isPresented: $showingImagePicker) {
-                ImagePicker(selectedImage: $selectedImage)
+                ImagePicker(selectedImage: $newImage)
             }
             .photosPicker(
                 isPresented: $showingPhotoPicker,
@@ -68,6 +71,10 @@ struct AddEntryView: View {
                     }
                 }
             }
+            .onAppear {
+                editedText = entry.text
+                currentImage = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName)
+            }
         }
     }
     
@@ -76,7 +83,6 @@ struct AddEntryView: View {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                // .frame(maxHeight: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
             
@@ -98,42 +104,21 @@ struct AddEntryView: View {
         .padding(.vertical, 24)
     }
     
-    private var imageSelectionSection: some View {
+    private var imageLoadingSection: some View {
         VStack(spacing: 24) {
-            Image(systemName: "photo.badge.plus")
-                .font(.system(size: 64))
+            ProgressView()
+                .scaleEffect(1.5)
+            
+            Text("Loading image...")
+                .font(.caption)
                 .foregroundColor(.secondary)
-
-            Button("Add a Photo") {
-                showingSourcePicker = true
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            // .background(Color.accentColor)
-            // .clipShape(RoundedRectangle(cornerRadius: 12))
-            .glassEffect(
-                .regular.tint(.blue.opacity(0.8)).interactive(),
-                in: .rect(cornerRadius: 12)
-            )
-            .confirmationDialog("Add a Photo", isPresented: $showingSourcePicker) {
-                Button("Camera") {
-                    showingImagePicker = true
-                }
-                Button("Photo Library") {
-                    showingPhotoPicker = true
-                }
-                Button("Cancel", role: .cancel) { }
-            }
         }
-        
         .padding(.vertical, 24)
     }
     
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Write a Line", text: $entryText, axis: .vertical)
+            TextField("Write a Line", text: $editedText, axis: .vertical)
                 .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
                 .lineSpacing(extra)
                 .multilineTextAlignment(.center)
@@ -141,22 +126,21 @@ struct AddEntryView: View {
                 .lineLimit(3...5)
                 .onAppear(perform: recalc)
                 .onChange(of: dts) { _ in recalc() }
-                .onChange(of: entryText) { _, newValue in
+                .onChange(of: editedText) { _, newValue in
                     if newValue.count > textLimit {
-                        entryText = String(newValue.prefix(textLimit))
+                        editedText = String(newValue.prefix(textLimit))
                     }
                 }
 
             HStack{
                 Spacer()
-                Text("\(entryText.count)/\(textLimit)")
+                Text("\(editedText.count)/\(textLimit)")
                     .font(.caption)
-                    .foregroundColor(entryText.count > textLimit ? .red : .secondary)
+                    .foregroundColor(editedText.count > textLimit ? .red : .secondary)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
-        
     }
     
     private func recalc() {
@@ -172,7 +156,7 @@ struct AddEntryView: View {
             if let data = try await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 await MainActor.run {
-                    selectedImage = image
+                    newImage = image
                 }
             }
         } catch {
@@ -181,81 +165,58 @@ struct AddEntryView: View {
     }
     
     private func saveEntry() {
-        guard let image = selectedImage else { return }
-        
         isLoading = true
         
-        let (imageFileName, thumbnailFileName) = ImageStorageManager.shared.saveImage(image)
+        // Update text
+        let trimmedText = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        entry.updateText(trimmedText)
         
-        guard let imageFileName = imageFileName,
-              let thumbnailFileName = thumbnailFileName else {
-            isLoading = false
-            return
+        // Handle image change if there's a new image
+        if let newImage = newImage {
+            // Delete old image files
+            ImageStorageManager.shared.deleteEntry(
+                imageFileName: entry.imageFileName,
+                thumbnailFileName: entry.thumbnailFileName
+            )
+            
+            // Save new image
+            let (imageFileName, thumbnailFileName) = ImageStorageManager.shared.saveImage(newImage)
+            
+            guard let imageFileName = imageFileName,
+                  let thumbnailFileName = thumbnailFileName else {
+                isLoading = false
+                return
+            }
+            
+            // Update entry with new filenames
+            entry.imageFileName = imageFileName
+            entry.thumbnailFileName = thumbnailFileName
+            
+            // Clear cache for old thumbnail to ensure fresh load
+            if let thumbnail = ImageStorageManager.shared.loadThumbnail(fileName: thumbnailFileName) {
+                ThumbnailCache.shared.cacheThumbnail(thumbnail, fileName: thumbnailFileName)
+            }
         }
-        
-        let entry = DiaryEntry(
-            date: date,
-            text: entryText.trimmingCharacters(in: .whitespacesAndNewlines),
-            imageFileName: imageFileName,
-            thumbnailFileName: thumbnailFileName
-        )
-        
-        modelContext.insert(entry)
         
         do {
             try modelContext.save()
             dismiss()
         } catch {
             print("Error saving entry: \(error)")
-            ImageStorageManager.shared.deleteEntry(
-                imageFileName: imageFileName,
-                thumbnailFileName: thumbnailFileName
-            )
         }
         
         isLoading = false
     }
 }
 
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var selectedImage: UIImage?
-    @Environment(\.dismiss) private var dismiss
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ImagePicker
-        
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = image
-            }
-            parent.dismiss()
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
-        }
-    }
-}
-
 #Preview {
-    AddEntryView(date: Date())
+    @State var entry = DiaryEntry(
+        date: Date(),
+        text: "Sample entry text for editing",
+        imageFileName: "sample.jpg",
+        thumbnailFileName: "sample_thumb.jpg"
+    )
+    
+    return EditEntryView(entry: entry)
         .modelContainer(for: DiaryEntry.self, inMemory: true)
 }
