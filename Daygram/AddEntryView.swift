@@ -193,7 +193,7 @@ struct AddEntryView: View {
             return
         }
         
-        let entry = DiaryEntry(
+        let entry = MemoryEntry(
             date: date,
             text: entryText.trimmingCharacters(in: .whitespacesAndNewlines),
             imageFileName: imageFileName,
@@ -257,5 +257,5 @@ struct ImagePicker: UIViewControllerRepresentable {
 
 #Preview {
     AddEntryView(date: Date())
-        .modelContainer(for: DiaryEntry.self, inMemory: true)
+        .modelContainer(for: MemoryEntry.self, inMemory: true)
 }

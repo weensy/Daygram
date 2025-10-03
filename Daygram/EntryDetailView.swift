@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct EntryDetailView: View {
-    @Bindable var entry: DiaryEntry
+    @Bindable var entry: MemoryEntry
     var onDismiss: (() -> Void)? = nil
     @Binding var isEditing: Bool
     @Binding var editedText: String
@@ -167,7 +167,7 @@ struct EntryDetailView: View {
     @Previewable @State var editedText = ""
     
     return EntryDetailView(
-        entry: DiaryEntry(
+        entry: MemoryEntry(
             date: Date(),
             text: "This is a sample diary entry with some text to show how it looks in the detail view.",
             imageFileName: "sample.jpg",
@@ -176,5 +176,5 @@ struct EntryDetailView: View {
         isEditing: $isEditing,
         editedText: $editedText
     )
-    .modelContainer(for: DiaryEntry.self, inMemory: true)
+    .modelContainer(for: MemoryEntry.self, inMemory: true)
 }

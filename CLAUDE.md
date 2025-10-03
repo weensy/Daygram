@@ -9,7 +9,7 @@ Daygram is a private baby photo diary iOS app built with SwiftUI and SwiftData. 
 ## Architecture
 
 - **App Entry Point**: `DaygramApp.swift` - Main app with SwiftData ModelContainer setup and AuthenticationView as root
-- **Data Model**: `DiaryEntry.swift` - SwiftData model with date, text, image filenames, and timestamps
+- **Data Model**: `MemoryEntry.swift` - SwiftData model with date, text, image filenames, and timestamps
 - **Image Storage**: `ImageStorageManager.swift` - Handles saving/loading images to Documents directory with automatic resizing
 - **Authentication**: `BiometricAuthManager.swift` + `AuthenticationView.swift` - Optional Face ID/Touch ID app lock
 - **Main Features**:

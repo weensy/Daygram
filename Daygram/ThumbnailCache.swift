@@ -18,7 +18,7 @@ class ThumbnailCache: ObservableObject {
         return imageCache[fileName]
     }
     
-    func preloadThumbnails(for entries: [DiaryEntry]) {
+    func preloadThumbnails(for entries: [MemoryEntry]) {
         cacheQueue.async { [weak self] in
             for entry in entries {
                 if self?.thumbnailCache[entry.thumbnailFileName] == nil {
@@ -32,7 +32,7 @@ class ThumbnailCache: ObservableObject {
         }
     }
     
-    func preloadImage(for entry: DiaryEntry) {
+    func preloadImage(for entry: MemoryEntry) {
         cacheQueue.async { [weak self] in
             if self?.imageCache[entry.imageFileName] == nil {
                 if let image = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName) {

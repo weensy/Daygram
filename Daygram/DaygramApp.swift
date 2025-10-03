@@ -5,7 +5,7 @@ import SwiftData
 struct DaygramApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            DiaryEntry.self,
+            MemoryEntry.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

@@ -106,5 +106,5 @@ struct AuthenticationView: View {
 
 #Preview {
     AuthenticationView()
-        .modelContainer(for: DiaryEntry.self, inMemory: true)
+        .modelContainer(for: MemoryEntry.self, inMemory: true)
 }

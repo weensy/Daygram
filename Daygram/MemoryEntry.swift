@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
-final class DiaryEntry {
+final class MemoryEntry {
     var id: UUID
     var date: Date
     var text: String
@@ -27,7 +27,7 @@ final class DiaryEntry {
     }
 }
 
-extension DiaryEntry {
+extension MemoryEntry {
     var dayKey: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"

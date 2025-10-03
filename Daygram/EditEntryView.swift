@@ -3,7 +3,7 @@ import SwiftData
 import PhotosUI
 
 struct EditEntryView: View {
-    @Bindable var entry: DiaryEntry
+    @Bindable var entry: MemoryEntry
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -210,7 +210,7 @@ struct EditEntryView: View {
 }
 
 #Preview {
-    @Previewable @State var entry = DiaryEntry(
+    @Previewable @State var entry = MemoryEntry(
         date: Date(),
         text: "Sample entry text for editing",
         imageFileName: "sample.jpg",
@@ -218,5 +218,5 @@ struct EditEntryView: View {
     )
     
     return EditEntryView(entry: entry)
-        .modelContainer(for: DiaryEntry.self, inMemory: true)
+        .modelContainer(for: MemoryEntry.self, inMemory: true)
 }

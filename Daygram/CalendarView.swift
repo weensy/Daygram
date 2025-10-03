@@ -3,11 +3,11 @@ import SwiftData
 
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var entries: [DiaryEntry]
+    @Query private var entries: [MemoryEntry]
     
     @StateObject private var thumbnailCache = ThumbnailCache.shared
     @State private var selectedMonth = Date()
-    @State private var selectedEntry: DiaryEntry?
+    @State private var selectedEntry: MemoryEntry?
     @State private var dateForNewEntry: Date?
     @State private var showingSettings = false
     @State private var showingQuickAdd = false
@@ -15,7 +15,7 @@ struct CalendarView: View {
     @State private var displayedYear = Calendar.current.component(.year, from: Date())
     @State private var debounceTask: Task<Void, Never>?
     @State private var monthDatesCache: [String: [Date]] = [:]
-    @State private var entriesDict: [String: DiaryEntry] = [:]
+    @State private var entriesDict: [String: MemoryEntry] = [:]
     @State private var showingDeleteAlert = false
     @State private var showingShareSheet = false
     @State private var showingEditEntry = false
@@ -216,7 +216,7 @@ struct CalendarView: View {
     }
 
     @ViewBuilder
-    private func entryDetailOverlay(for entry: DiaryEntry) -> some View {
+    private func entryDetailOverlay(for entry: MemoryEntry) -> some View {
         GeometryReader { geometry in
             let rawWidth = geometry.size.width - 32
             let width = rawWidth > 0 ? min(rawWidth, 620) : geometry.size.width
@@ -288,7 +288,7 @@ struct CalendarView: View {
     }
     
     
-    private func deleteEntry(_ entry: DiaryEntry) {
+    private func deleteEntry(_ entry: MemoryEntry) {
         ImageStorageManager.shared.deleteEntry(
             imageFileName: entry.imageFileName,
             thumbnailFileName: entry.thumbnailFileName
@@ -572,8 +572,8 @@ struct CalendarView: View {
         return formatter.string(from: date)
     }
     
-    private func entryForDate(_ date: Date) -> DiaryEntry? {
-        let dayKey = DiaryEntry.dayKey(for: date)
+    private func entryForDate(_ date: Date) -> MemoryEntry? {
+        let dayKey = MemoryEntry.dayKey(for: date)
         return entriesDict[dayKey]
     }
     
@@ -584,7 +584,7 @@ struct CalendarView: View {
     
     private var hasTodayEntry: Bool {
         let today = Date()
-        let todayKey = DiaryEntry.dayKey(for: today)
+        let todayKey = MemoryEntry.dayKey(for: today)
         return entries.contains { $0.dayKey == todayKey }
     }
     
@@ -605,11 +605,11 @@ struct CalendarView: View {
         let entryDayKeys = Set(entries.map { $0.dayKey })
         
         // Check if today has an entry
-        let todayHasEntry = entryDayKeys.contains(DiaryEntry.dayKey(for: currentDate))
+        let todayHasEntry = entryDayKeys.contains(MemoryEntry.dayKey(for: currentDate))
         
         if todayHasEntry {
             // If today has an entry, count from today backwards
-            while entryDayKeys.contains(DiaryEntry.dayKey(for: currentDate)) {
+            while entryDayKeys.contains(MemoryEntry.dayKey(for: currentDate)) {
                 streak += 1
                 currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
             }
@@ -617,7 +617,7 @@ struct CalendarView: View {
             // If today has no entry, start from yesterday
             currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
             
-            while entryDayKeys.contains(DiaryEntry.dayKey(for: currentDate)) {
+            while entryDayKeys.contains(MemoryEntry.dayKey(for: currentDate)) {
                 streak += 1
                 currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
             }
@@ -649,7 +649,7 @@ struct CalendarView: View {
                     break
                 }
                 
-                let dayKey = DiaryEntry.dayKey(for: dayInWeek)
+                let dayKey = MemoryEntry.dayKey(for: dayInWeek)
                 if !entryDayKeys.contains(dayKey) {
                     hasAllDays = false
                     break
@@ -709,7 +709,7 @@ struct ShareSheet: UIViewControllerRepresentable {
 
 struct DayCell: View {
     let date: Date
-    let entry: DiaryEntry?
+    let entry: MemoryEntry?
     let onTap: () -> Void
     
     @StateObject private var thumbnailCache = ThumbnailCache.shared
@@ -717,7 +717,7 @@ struct DayCell: View {
     @State private var loadTask: Task<Void, Never>?
     private var calendar = Calendar.current
     
-    init(date: Date, entry: DiaryEntry?, onTap: @escaping () -> Void) {
+    init(date: Date, entry: MemoryEntry?, onTap: @escaping () -> Void) {
         self.date = date
         self.entry = entry
         self.onTap = onTap
@@ -840,5 +840,5 @@ struct StatItem: View {
 
 #Preview {
     CalendarView()
-        .modelContainer(for: DiaryEntry.self, inMemory: true)
+        .modelContainer(for: MemoryEntry.self, inMemory: true)
 }

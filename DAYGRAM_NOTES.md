@@ -1,13 +1,13 @@
 # Daygram Codebase Notes
 
 ## High-Level Overview
-- SwiftUI app that stores baby diary entries locally using SwiftData's `DiaryEntry` model.
+- SwiftUI app that stores baby diary entries locally using SwiftData's `MemoryEntry` model.
 - Launch flow always starts with `AuthenticationView`; if biometrics/passcode succeed (or app lock disabled) the user sees the calendar timeline.
 - Core experience revolves around calendar browsing (`CalendarView`), entry creation (`AddEntryView`), and entry inspection/editing (`EntryDetailView`).
 - Images persist under the Documents directory (`Images/` + `Thumbnails/`) via `ImageStorageManager`; in-memory reuse handled by `ThumbnailCache`.
 
 ## Data Model & Persistence
-- `DiaryEntry` (`Daygram/DiaryEntry.swift`): stores id, date, text, file names, and timestamps. Provides helpers like `dayKey` for lookups and `updateText` for editing metadata.
+- `MemoryEntry` (`Daygram/MemoryEntry.swift`): stores id, date, text, file names, and timestamps. Provides helpers like `dayKey` for lookups and `updateText` for editing metadata.
 - `DaygramApp` wires a persistent `ModelContainer` (disk-backed) and injects it across the view hierarchy.
 - SwiftData queries: most views rely on `@Query` (e.g., `CalendarView`) or `@Bindable` wrappers to keep SwiftUI state synchronized.
 
