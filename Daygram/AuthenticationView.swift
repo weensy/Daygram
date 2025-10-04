@@ -2,7 +2,9 @@ import SwiftUI
 
 struct AuthenticationView: View {
     @StateObject private var authManager = BiometricAuthManager()
+    @StateObject private var passcodeManager = AppPasscodeManager.shared
     @AppStorage("requireAuthentication") private var requireAuthentication = false
+    @State private var showingPasscodeEntry = false
     
     var body: some View {
         if requireAuthentication && !authManager.isAuthenticated {
@@ -14,6 +16,12 @@ struct AuthenticationView: View {
                         Task {
                             await authManager.authenticate()
                         }
+                    }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    // Reset authentication when app comes to foreground
+                    if requireAuthentication {
+                        authManager.isAuthenticated = false
                     }
                 }
         }
@@ -60,22 +68,40 @@ struct AuthenticationView: View {
                     }
                 }
                 
-                Button(action: {
-                    Task {
-                        await authManager.authenticateWithPasscode()
+                if passcodeManager.hasPasscode {
+                    Button(action: {
+                        showingPasscodeEntry = true
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock")
+                                .font(.title2)
+                            Text("Unlock with App Passcode")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(Color.accentColor.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "lock")
-                            .font(.title2)
-                        Text("Unlock with Passcode")
-                            .font(.headline)
+                } else if authManager.biometricType == .none {
+                    Button(action: {
+                        Task {
+                            await authManager.authenticateWithPasscode()
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock")
+                                .font(.title2)
+                            Text("Unlock with Device Passcode")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .background(Color.accentColor.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .foregroundColor(.accentColor)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
-                    .background(Color.accentColor.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 
                 if let error = authManager.authError {
@@ -100,6 +126,17 @@ struct AuthenticationView: View {
         .padding(.horizontal, 32)
         .onAppear {
             authManager.checkBiometricAvailability()
+        }
+        .fullScreenCover(isPresented: $showingPasscodeEntry) {
+            PasscodeEntryView(
+                onSuccess: {
+                    authManager.isAuthenticated = true
+                    showingPasscodeEntry = false
+                },
+                onCancel: {
+                    showingPasscodeEntry = false
+                }
+            )
         }
     }
 }

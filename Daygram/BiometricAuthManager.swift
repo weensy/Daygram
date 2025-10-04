@@ -5,6 +5,8 @@ class BiometricAuthManager: ObservableObject {
     @Published var isAuthenticated = false
     @Published var authError: String?
     @Published var biometricType: LABiometryType = .none
+    @Published var canUseDeviceAuthentication = false
+    @Published var canUseAppAuthentication = false
     
     private let context = LAContext()
     private let reason = "Unlock Daygram to view your private memories"
@@ -16,6 +18,7 @@ class BiometricAuthManager: ObservableObject {
     func checkBiometricAvailability() {
         var error: NSError?
         
+        // Check for biometric authentication
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             biometricType = context.biometryType
         } else {
@@ -24,6 +27,12 @@ class BiometricAuthManager: ObservableObject {
                 authError = "No biometric authentication enrolled"
             }
         }
+        
+        // Check if device owner authentication (including passcode) is available
+        canUseDeviceAuthentication = context.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+        
+        // Check if app-specific authentication is available (biometrics OR app passcode)
+        canUseAppAuthentication = biometricType != .none || AppPasscodeManager.shared.hasPasscode
     }
     
     func authenticate() async {
@@ -99,5 +108,16 @@ class BiometricAuthManager: ObservableObject {
         default:
             return "Passcode"
         }
+    }
+    
+    func authenticateWithAppPasscode(_ passcode: String) -> Bool {
+        let success = AppPasscodeManager.shared.verifyPasscode(passcode)
+        if success {
+            isAuthenticated = true
+            authError = nil
+        } else {
+            authError = "Incorrect passcode"
+        }
+        return success
     }
 }
