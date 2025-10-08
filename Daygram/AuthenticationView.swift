@@ -114,14 +114,6 @@ struct AuthenticationView: View {
             }
             
             Spacer()
-            
-            Button(action: {
-                requireAuthentication = false
-            }) {
-                Text("Skip Authentication")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
         }
         .padding(.horizontal, 32)
         .onAppear {
