@@ -20,23 +20,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    HStack {
-                        Image(systemName: "heart.circle.fill")
-                            .foregroundColor(.pink)
-                            .font(.title2)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Daygram")
-                                .font(.headline)
-                            Text("Private baby photo diary")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
-                
                 Section("Privacy & Security") {
                     Toggle(isOn: Binding(
                         get: { requireAuthentication },
@@ -106,33 +89,75 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section("About") {
-                    HStack {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.accentColor)
-                            .frame(width: 24)
+                // Section("About") {
+                //     HStack {
+                //         Image(systemName: "info.circle")
+                //             .foregroundColor(.accentColor)
+                //             .frame(width: 24)
                         
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Data Storage")
-                            Text("All photos and notes are stored locally on your device")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                //         VStack(alignment: .leading, spacing: 2) {
+                //             Text("Data Storage")
+                //             Text("All photos and notes are stored locally on your device")
+                //                 .font(.caption)
+                //                 .foregroundColor(.secondary)
+                //         }
+                //     }
                     
-                    HStack {
-                        Image(systemName: "lock.shield")
-                            .foregroundColor(.accentColor)
-                            .frame(width: 24)
+                //     HStack {
+                //         Image(systemName: "lock.shield")
+                //             .foregroundColor(.accentColor)
+                //             .frame(width: 24)
                         
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Privacy First")
-                            Text("No accounts, no cloud sync, no tracking")
-                                .font(.caption)
+                //         VStack(alignment: .leading, spacing: 2) {
+                //             Text("Privacy First")
+                //             Text("No accounts, no cloud sync, no tracking")
+                //                 .font(.caption)
+                //                 .foregroundColor(.secondary)
+                //         }
+                //     }
+                // }
+
+                Section {
+                    HStack {
+                        Spacer()
+
+                        VStack(alignment: .center, spacing: 4) {
+                            // if let appIcon = getAppIcon() {
+                            //     Image(uiImage: appIcon)
+                            //         .resizable()
+                            //         .frame(width: 32, height: 32)
+                            //         .clipShape(RoundedRectangle(cornerRadius: 6))
+                            // } else {
+                                ZStack {
+                                    Image(systemName: "sun.max")
+                                        // .foregroundColor(.white)
+                                        .foregroundColor(.secondary)
+                                        .font(.system(size: 32))
+                                        .fontWeight(.heavy)
+                                    Image(systemName: "app")
+                                        // .foregroundColor(.white)
+                                        .foregroundColor(.secondary)
+                                        .font(.system(size: 60))
+                                        .fontWeight(.regular)
+                                }
+                            // }
+
+                            Text("Daygram")
+                                .font(.title2)
                                 .foregroundColor(.secondary)
+                                .fontWeight(.heavy)
+
+                            Text("One photo, One line")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.light)
                         }
+
+                        Spacer()
                     }
+                    .padding(.vertical, 8)
                 }
+                .listRowBackground(Color.clear)
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -229,6 +254,36 @@ struct SettingsView: View {
             // If only biometric auth, disable immediately
             requireAuthentication = false
         }
+    }
+    
+    private func getAppIcon() -> UIImage? {
+        // First try the specific daygram image we found
+        if let icon = UIImage(named: "daygram") {
+            return icon
+        }
+        
+        // Try different possible app icon names
+        let possibleNames = ["AppIcon60x60", "AppIcon76x76", "AppIcon40x40", "AppIcon29x29", "AppIcon"]
+        
+        for name in possibleNames {
+            if let icon = UIImage(named: name) {
+                return icon
+            }
+        }
+        
+        // Alternative method using bundle info for app icon
+        if let iconsDictionary = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+           let primaryIconsDictionary = iconsDictionary["CFBundlePrimaryIcon"] as? [String: Any],
+           let iconFiles = primaryIconsDictionary["CFBundleIconFiles"] as? [String] {
+            
+            for iconName in iconFiles.reversed() {
+                if let icon = UIImage(named: iconName) {
+                    return icon
+                }
+            }
+        }
+        
+        return nil
     }
 }
 
