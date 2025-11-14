@@ -84,7 +84,7 @@ struct EditEntryView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
             
             Button("Change Photo") {
                 showingSourcePicker = true
@@ -120,12 +120,18 @@ struct EditEntryView: View {
         VStack(alignment: .leading, spacing: 12) {
             TextField("Write a Line", text: $editedText, axis: .vertical)
                 .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
-                .lineSpacing(extra)
                 .multilineTextAlignment(.center)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .lineLimit(3...5)
-                .onAppear(perform: recalc)
-                .onChange(of: dts) { recalc() }
+                .textFieldStyle(.plain)
+                .lineLimit(1...3)
+                .padding(.bottom, 8)
+                .background(
+                    VStack {
+                        Spacer()
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(height: 1)
+                    }
+                )
                 .onChange(of: editedText) { _, newValue in
                     if newValue.count > textLimit {
                         editedText = String(newValue.prefix(textLimit))
@@ -139,7 +145,7 @@ struct EditEntryView: View {
                     .foregroundColor(editedText.count > textLimit ? .red : .secondary)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 24)
         .padding(.vertical, 24)
     }
     

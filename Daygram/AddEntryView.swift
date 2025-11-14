@@ -24,7 +24,7 @@ struct AddEntryView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            VStack(spacing: 32) {
                 Spacer()
                 if let selectedImage = selectedImage {
                     imagePreviewSection(selectedImage)
@@ -78,7 +78,7 @@ struct AddEntryView: View {
                 .aspectRatio(contentMode: .fit)
                 // .frame(maxHeight: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
             
             Button("Change Photo") {
                 showingSourcePicker = true
@@ -95,7 +95,7 @@ struct AddEntryView: View {
                 Button("Cancel", role: .cancel) { }
             }
         }
-        .padding(.vertical, 24)
+        // .padding(.vertical, 24)
     }
     
     private var imageSelectionSection: some View {
@@ -103,44 +103,38 @@ struct AddEntryView: View {
             Image(systemName: "photo.badge.plus")
                 .font(.system(size: 64))
                 .foregroundColor(.secondary)
-
-            Button("Add a Photo") {
-                showingSourcePicker = true
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            // .background(Color.accentColor)
-            // .clipShape(RoundedRectangle(cornerRadius: 12))
-            .glassEffect(
-                .regular.tint(.blue.opacity(0.8)).interactive(),
-                in: .rect(cornerRadius: 12)
-            )
-            .confirmationDialog("Add a Photo", isPresented: $showingSourcePicker) {
-                Button("Camera") {
-                    showingImagePicker = true
+                .onTapGesture {
+                    showingSourcePicker = true
                 }
-                Button("Photo Library") {
-                    showingPhotoPicker = true
-                }
-                Button("Cancel", role: .cancel) { }
-            }
         }
-        
         .padding(.vertical, 24)
+        .confirmationDialog("Add a Photo", isPresented: $showingSourcePicker) {
+            Button("Camera") {
+                showingImagePicker = true
+            }
+            Button("Photo Library") {
+                showingPhotoPicker = true
+            }
+            Button("Cancel", role: .cancel) { }
+        }
     }
     
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             TextField("Write a Line", text: $entryText, axis: .vertical)
                 .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
-                .lineSpacing(extra)
                 .multilineTextAlignment(.center)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .lineLimit(3...5)
-                .onAppear(perform: recalc)
-                .onChange(of: dts) { recalc() }
+                .textFieldStyle(.plain)
+                .lineLimit(1...3)
+                .padding(.bottom, 8)
+                .background(
+                    VStack {
+                        Spacer()
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(height: 1)
+                    }
+                )
                 .onChange(of: entryText) { _, newValue in
                     if newValue.count > textLimit {
                         entryText = String(newValue.prefix(textLimit))
@@ -154,9 +148,9 @@ struct AddEntryView: View {
                     .foregroundColor(entryText.count > textLimit ? .red : .secondary)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 24)
         .padding(.vertical, 24)
-        
+
     }
     
     private func recalc() {
