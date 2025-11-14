@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("requireAuthentication") private var requireAuthentication = false
-    @StateObject private var authManager = BiometricAuthManager()
+    @StateObject private var authManager = BiometricAuthManager.shared
     @StateObject private var passcodeManager = AppPasscodeManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showingPasscodeSetup = false

@@ -2,16 +2,18 @@ import LocalAuthentication
 import SwiftUI
 
 class BiometricAuthManager: ObservableObject {
+    static let shared = BiometricAuthManager()
+
     @Published var isAuthenticated = false
     @Published var authError: String?
     @Published var biometricType: LABiometryType = .none
     @Published var canUseDeviceAuthentication = false
     @Published var canUseAppAuthentication = false
-    
+
     private let context = LAContext()
     private let reason = "Unlock Daygram to view your private memories"
-    
-    init() {
+
+    private init() {
         checkBiometricAvailability()
     }
     
