@@ -162,7 +162,7 @@ struct AddEntryView: View {
         case "ko":
             return .custom("MaruBuriot-Regular", size: baseSize, relativeTo: .title3)
         case "ja":
-            return .custom("KleeOne-Regular", size: baseSize, relativeTo: .title3)
+            return .custom("KleeOne-SemiBold", size: baseSize, relativeTo: .title3)
         default:
             return .custom("Georgia-Italic", size: baseSize, relativeTo: .title3)
         }
