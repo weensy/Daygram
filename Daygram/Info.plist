@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ja</string>
+		<string>ko</string>
+	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>MaruBuri-Regular.otf</string>
+		<string>MaruBuri-Bold.otf</string>
+		<string>MaruBuri-Light.otf</string>
+		<string>MaruBuri-SemiBold.otf</string>
+		<string>MaruBuri-ExtraLight.otf</string>
+		<string>KleeOne-Regular.otf</string>
+		<string>KleeOne-SemiBold.otf</string>
+	</array>
+</dict>
+</plist>

@@ -121,7 +121,7 @@ struct EntryDetailView: View {
                 } else {
                     Text(entry.text)
                         // .font(.body)
-                        .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
+                        .font(customFont())
                         .lineSpacing(extra)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
@@ -136,6 +136,22 @@ struct EntryDetailView: View {
     private func recalc() {
         let lh = UIFont.preferredFont(forTextStyle: .title3).lineHeight
         extra = (multiple - 1.0) * lh
+    }
+
+    private func customFont() -> Font {
+        let baseSize = UIFont.preferredFont(forTextStyle: .title3).pointSize
+
+        // Check the app's preferred language
+        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
+
+        switch preferredLanguage {
+        case "ko":
+            return .custom("MaruBuri-Regular", size: baseSize, relativeTo: .title3)
+        case "ja":
+            return .custom("KleeOne-Regular", size: baseSize, relativeTo: .title3)
+        default:
+            return .custom("Georgia-Italic", size: baseSize, relativeTo: .title3)
+        }
     }
 
     private var dateTitle: String {

@@ -119,7 +119,7 @@ struct EditEntryView: View {
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             TextField("Write a Line", text: $editedText, axis: .vertical)
-                .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .title3).pointSize, relativeTo: .title3))
+                .font(customFont())
                 .multilineTextAlignment(.center)
                 .textFieldStyle(.plain)
                 .lineLimit(1...3)
@@ -152,6 +152,22 @@ struct EditEntryView: View {
     private func recalc() {
         let lh = UIFont.preferredFont(forTextStyle: .title3).lineHeight
         extra = (multiple - 1.0) * lh
+    }
+
+    private func customFont() -> Font {
+        let baseSize = UIFont.preferredFont(forTextStyle: .title3).pointSize
+
+        // Check the app's preferred language
+        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
+
+        switch preferredLanguage {
+        case "ko":
+            return .custom("MaruBuri-Regular", size: baseSize, relativeTo: .title3)
+        case "ja":
+            return .custom("KleeOne-Regular", size: baseSize, relativeTo: .title3)
+        default:
+            return .custom("Georgia-Italic", size: baseSize, relativeTo: .title3)
+        }
     }
     
     private func loadPhotoFromPicker(_ item: PhotosPickerItem) async {
