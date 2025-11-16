@@ -18,7 +18,9 @@ struct DaygramApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AuthenticationView()
+            // TEMPORARILY DISABLED: App Lock feature disabled for initial release
+            // AuthenticationView()
+            CalendarView()
         }
         .modelContainer(sharedModelContainer)
     }

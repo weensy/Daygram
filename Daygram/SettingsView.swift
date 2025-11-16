@@ -20,75 +20,76 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Privacy & Security") {
-                    Toggle(isOn: Binding(
-                        get: { requireAuthentication },
-                        set: { newValue in
-                            if newValue {
-                                enableAppLock()
-                            } else {
-                                disableAppLock()
-                            }
-                        }
-                    )) {
-                        HStack {
-                            Image(systemName: authManager.biometricIcon)
-                                .foregroundColor(.accentColor)
-                                .frame(width: 24)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("App Lock")
-                                    .font(.body)
-                                
-                                if authManager.biometricType != .none {
-                                    Text("Require \(authManager.biometricName) to open app")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else if passcodeManager.hasPasscode {
-                                    Text("Require app passcode to open app")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("Set up app passcode to enable lock")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Show passcode change option if app passcode is set
-                    if passcodeManager.hasPasscode {
-                        Button(action: {
-                            verificationPurpose = .changePasscode
-                            showingPasscodeVerification = true
-                        }) {
-                            HStack {
-                                Image(systemName: "key")
-                                    .foregroundColor(.accentColor)
-                                    .frame(width: 24)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Change App Passcode")
-                                        .font(.body)
-                                        .foregroundColor(.primary)
-                                    
-                                    Text("Update your 4-digit app passcode")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
-                
+                // TEMPORARILY DISABLED: App Lock feature hidden for initial release
+                // Section("Privacy & Security") {
+                //     Toggle(isOn: Binding(
+                //         get: { requireAuthentication },
+                //         set: { newValue in
+                //             if newValue {
+                //                 enableAppLock()
+                //             } else {
+                //                 disableAppLock()
+                //             }
+                //         }
+                //     )) {
+                //         HStack {
+                //             Image(systemName: authManager.biometricIcon)
+                //                 .foregroundColor(.accentColor)
+                //                 .frame(width: 24)
+                //
+                //             VStack(alignment: .leading, spacing: 2) {
+                //                 Text("App Lock")
+                //                     .font(.body)
+                //
+                //                 if authManager.biometricType != .none {
+                //                     Text("Require \(authManager.biometricName) to open app")
+                //                         .font(.caption)
+                //                         .foregroundColor(.secondary)
+                //                 } else if passcodeManager.hasPasscode {
+                //                     Text("Require app passcode to open app")
+                //                         .font(.caption)
+                //                         .foregroundColor(.secondary)
+                //                 } else {
+                //                     Text("Set up app passcode to enable lock")
+                //                         .font(.caption)
+                //                         .foregroundColor(.secondary)
+                //                 }
+                //             }
+                //         }
+                //     }
+                //
+                //     // Show passcode change option if app passcode is set
+                //     if passcodeManager.hasPasscode {
+                //         Button(action: {
+                //             verificationPurpose = .changePasscode
+                //             showingPasscodeVerification = true
+                //         }) {
+                //             HStack {
+                //                 Image(systemName: "key")
+                //                     .foregroundColor(.accentColor)
+                //                     .frame(width: 24)
+                //
+                //                 VStack(alignment: .leading, spacing: 2) {
+                //                     Text("Change App Passcode")
+                //                         .font(.body)
+                //                         .foregroundColor(.primary)
+                //
+                //                     Text("Update your 4-digit app passcode")
+                //                         .font(.caption)
+                //                         .foregroundColor(.secondary)
+                //                 }
+                //
+                //                 Spacer()
+                //
+                //                 Image(systemName: "chevron.right")
+                //                     .font(.caption)
+                //                     .foregroundColor(.secondary)
+                //             }
+                //         }
+                //         .buttonStyle(PlainButtonStyle())
+                //     }
+                // }
+
                 // Section("About") {
                 //     HStack {
                 //         Image(systemName: "info.circle")
