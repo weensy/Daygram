@@ -79,18 +79,14 @@ struct EditEntryView: View {
     }
     
     private func imagePreviewSection(_ image: UIImage) -> some View {
-        VStack(spacing: 16) {
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal, 24)
-            
-            Button("Change Photo") {
+        Image(uiImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 24)
+            .onTapGesture {
                 showingSourcePicker = true
             }
-            .font(.headline)
-            .foregroundColor(.accentColor)
             .confirmationDialog("Change Photo", isPresented: $showingSourcePicker) {
                 Button("Camera") {
                     showingImagePicker = true
@@ -100,8 +96,6 @@ struct EditEntryView: View {
                 }
                 Button("Cancel", role: .cancel) { }
             }
-        }
-        .padding(.vertical, 24)
     }
     
     private var imageLoadingSection: some View {
