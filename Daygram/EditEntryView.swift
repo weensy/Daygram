@@ -156,7 +156,7 @@ struct EditEntryView: View {
 
         switch preferredLanguage {
         case "ko":
-            return .custom("MaruBuri-Regular", size: baseSize, relativeTo: .title3)
+            return .custom("MaruBuriot-Regular", size: baseSize, relativeTo: .title3)
         case "ja":
             return .custom("KleeOne-SemiBold", size: baseSize, relativeTo: .title3)
         default:
