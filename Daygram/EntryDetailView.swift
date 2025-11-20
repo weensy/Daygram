@@ -46,7 +46,7 @@ struct EntryDetailView: View {
             Spacer()
 
             Text(dateTitle)
-                .font(.custom("Georgia-Italic", size: UIFont.preferredFont(forTextStyle: .subheadline).pointSize, relativeTo: .subheadline))
+                .font(.daygramFont(forTextStyle: .subheadline, relativeTo: .subheadline))
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
@@ -139,19 +139,7 @@ struct EntryDetailView: View {
     }
 
     private func customFont() -> Font {
-        let baseSize = UIFont.preferredFont(forTextStyle: .title3).pointSize
-
-        // Check the app's preferred language
-        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
-
-        switch preferredLanguage {
-        case "ko":
-            return .custom("MaruBuriot-Regular", size: baseSize, relativeTo: .title3)
-        case "ja":
-            return .custom("KleeOne-SemiBold", size: baseSize, relativeTo: .title3)
-        default:
-            return .custom("Georgia-Italic", size: baseSize, relativeTo: .title3)
-        }
+        return .daygramFont(forTextStyle: .title3, relativeTo: .title3)
     }
 
     private var dateTitle: String {
