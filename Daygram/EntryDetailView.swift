@@ -7,13 +7,13 @@ struct EntryDetailView: View {
     @Binding var isEditing: Bool
     @Binding var editedText: String
     var onSave: (() -> Void)?
-    
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @StateObject private var imageCache = ThumbnailCache.shared
-    
+
     @State private var displayImage: UIImage?
-    
+
     private let textLimit = 100
 
     @Environment(\.dynamicTypeSize) private var dts

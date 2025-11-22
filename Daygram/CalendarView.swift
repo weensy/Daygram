@@ -231,35 +231,25 @@ struct CalendarView: View {
                         dismissEntryDetail()
                     }
 
-                VStack(spacing: 12) {
-                    EntryDetailView(
-                        entry: entry,
-                        onDismiss: dismissEntryDetail,
-                        isEditing: .constant(false),
-                        editedText: .constant(""),
-                        onSave: nil
-                    )
-                        .frame(maxWidth: width)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .background(colorScheme == .dark ? Color(.systemGray3) : Color.white)
-                        // .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-                    
+                VStack(spacing: 0) {
+                    Spacer()
+
                     HStack {
+                        Spacer()
                         Menu {
-                            Button(action: { 
+                            Button(action: {
                                 showingEditEntry = true
                             }) {
                                 Label("Edit", systemImage: "pencil")
                             }
-                            
-                            Button(action: { 
+
+                            Button(action: {
                                 showingShareSheet = true
                             }) {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
-                            
-                            Button(role: .destructive, action: { 
+
+                            Button(role: .destructive, action: {
                                 showingDeleteAlert = true
                             }) {
                                 Label("Delete", systemImage: "trash")
@@ -274,6 +264,31 @@ struct CalendarView: View {
                                 .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+
+                    EntryDetailView(
+                        entry: entry,
+                        onDismiss: dismissEntryDetail,
+                        isEditing: .constant(false),
+                        editedText: .constant(""),
+                        onSave: nil
+                    )
+                        .frame(maxWidth: width)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background(colorScheme == .dark ? Color(.systemGray3) : Color.white)
+                        // .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+
+                    Spacer()
+
+                    DateDialView(
+                        entry: entry,
+                        selectedEntry: $selectedEntry,
+                        thumbnailCache: thumbnailCache
+                    )
+                        .frame(maxWidth: width)
+                        .padding(.bottom, 20)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -284,6 +299,134 @@ struct CalendarView: View {
         withAnimation(.easeInOut) {
             selectedEntry = nil
         }
+    }
+
+struct DateDialView: View {
+    let entry: MemoryEntry
+    @Binding var selectedEntry: MemoryEntry?
+    @ObservedObject var thumbnailCache: ThumbnailCache
+    
+    @State private var scrolledDay: Int?
+    @Query private var entries: [MemoryEntry]
+    
+    private var calendar: Calendar { Calendar.current }
+    
+    var body: some View {
+        let month = calendar.component(.month, from: entry.date)
+        let year = calendar.component(.year, from: entry.date)
+        let range = calendar.range(of: .day, in: .month, for: entry.date)!
+        let daysInMonth = range.count
+
+        return GeometryReader { geometry in
+            let centerX = geometry.size.width / 2
+
+            ZStack {
+                // Center selection background - fixed in the middle
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 80, height: 100)
+                    .position(x: centerX, y: 50)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollViewReader { proxy in
+                        LazyHStack(spacing: 0) {
+                            ForEach(1...daysInMonth, id: \.self) { day in
+                                let date = calendar.date(from: DateComponents(year: year, month: month, day: day))!
+                                let dayEntry = entryForDate(date)
+
+                                GeometryReader { itemGeometry in
+                                    let itemCenterX = itemGeometry.frame(in: .named("scroll")).midX
+                                    let distanceFromCenter = abs(itemCenterX - centerX)
+                                    let normalizedDistance = min(distanceFromCenter / 100, 1.0)
+
+                                    let scale = 1.0 - (normalizedDistance * 0.4)
+                                    let opacity = 1.0 - (normalizedDistance * 0.6)
+                                    let rotation = (itemCenterX - centerX) / 10
+
+                                    VStack(spacing: 4) {
+                                        Text("\(day)")
+                                            .font(.system(size: 28, weight: .medium))
+                                            .foregroundColor(dayEntry != nil ? .primary : .secondary)
+
+                                        Text(dayOfWeek(for: date))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .scaleEffect(scale)
+                                    .opacity(opacity)
+                                    .rotation3DEffect(
+                                        .degrees(rotation),
+                                        axis: (x: 0, y: 1, z: 0),
+                                        perspective: 0.5
+                                    )
+                                    .onTapGesture {
+                                        if let dayEntry {
+                                            thumbnailCache.preloadImage(for: dayEntry)
+                                            withAnimation(.easeInOut) {
+                                                selectedEntry = dayEntry
+                                            }
+                                        } else {
+                                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                proxy.scrollTo(day, anchor: .center)
+                                            }
+                                        }
+                                    }
+                                }
+                                .frame(width: 80, height: 100)
+                                .id(day)
+                            }
+                        }
+                        .scrollTargetLayout()
+                        .onAppear {
+                            let currentDay = calendar.component(.day, from: entry.date)
+                            proxy.scrollTo(currentDay, anchor: .center)
+                        }
+                        .onChange(of: entry.date) { _, newDate in
+                            let newDay = calendar.component(.day, from: newDate)
+                            proxy.scrollTo(newDay, anchor: .center)
+                        }
+                    }
+                }
+                .contentMargins(.horizontal, centerX - 40, for: .scrollContent)
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $scrolledDay, anchor: .center)
+                .sensoryFeedback(.selection, trigger: scrolledDay)
+                .coordinateSpace(name: "scroll")
+                .onChange(of: scrolledDay) { _, newDay in
+                    guard let newDay, 
+                          let newDate = calendar.date(from: DateComponents(year: year, month: month, day: newDay)),
+                          !calendar.isDate(newDate, inSameDayAs: entry.date) else { return }
+                    
+                    if let newEntry = entryForDate(newDate) {
+                        thumbnailCache.preloadImage(for: newEntry)
+                        withAnimation(.easeInOut) {
+                            selectedEntry = newEntry
+                        }
+                    }
+                }
+            }
+        }
+        .frame(height: 100)
+    }
+    
+    private func dayOfWeek(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+    
+    private func entryForDate(_ date: Date) -> MemoryEntry? {
+        let dayKey = MemoryEntry.dayKey(for: date)
+        return entries.first { $0.dayKey == dayKey }
+    }
+}
+
+
+    private func dayOfWeek(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
     }
     
     
