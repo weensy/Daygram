@@ -288,7 +288,7 @@ struct CalendarView: View {
                         thumbnailCache: thumbnailCache
                     )
                         .frame(maxWidth: width)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 12)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -319,14 +319,60 @@ struct DateDialView: View {
 
         return GeometryReader { geometry in
             let centerX = geometry.size.width / 2
+            let itemWidth: CGFloat = 50
 
             ZStack {
-                // Center selection background - fixed in the middle
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 80, height: 100)
-                    .position(x: centerX, y: 50)
+                // Background ScrollView with glass effect (layer 0)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    ScrollViewReader { proxy in
+                        LazyHStack(spacing: 0) {
+                            ForEach(1...daysInMonth, id: \.self) { day in
+                                Color.clear
+                                    .frame(width: itemWidth)
+                                    .id(day)
+                            }
+                        }
+                        .scrollTargetLayout()
+                        .onAppear {
+                            let currentDay = calendar.component(.day, from: entry.date)
+                            proxy.scrollTo(currentDay, anchor: .center)
+                        }
+                        .onChange(of: entry.date) { _, newDate in
+                            let newDay = calendar.component(.day, from: newDate)
+                            proxy.scrollTo(newDay, anchor: .center)
+                        }
+                    }
+                }
+                .frame(height: 60)
+                .glassEffect(.regular, in: .capsule)
+                .contentMargins(.horizontal, centerX - (itemWidth / 2), for: .scrollContent)
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $scrolledDay, anchor: .center)
+                .sensoryFeedback(.selection, trigger: scrolledDay)
+                .coordinateSpace(name: "scroll")
+                .onChange(of: scrolledDay) { _, newDay in
+                    guard let newDay,
+                        let newDate = calendar.date(from: DateComponents(year: year, month: month, day: newDay)),
+                        !calendar.isDate(newDate, inSameDayAs: entry.date) else { return }
 
+                    if let newEntry = entryForDate(newDate) {
+                        thumbnailCache.preloadImage(for: newEntry)
+                        withAnimation(.easeInOut) {
+                            selectedEntry = newEntry
+                        }
+                    }
+                }
+                .zIndex(0)
+                
+                // ~~Vertical capsule~~ Circle liquid glass indicator in the center (layer 1)
+                Circle()
+                    .fill(.clear)
+                    .frame(width: 68, height: 68)
+                    .glassEffect(.regular, in: .circle)
+                    .allowsHitTesting(false)
+                    .zIndex(1)
+                
+                // Content numbers overlay (layer 2)
                 ScrollView(.horizontal, showsIndicators: false) {
                     ScrollViewReader { proxy in
                         LazyHStack(spacing: 0) {
@@ -337,28 +383,36 @@ struct DateDialView: View {
                                 GeometryReader { itemGeometry in
                                     let itemCenterX = itemGeometry.frame(in: .named("scroll")).midX
                                     let distanceFromCenter = abs(itemCenterX - centerX)
-                                    let normalizedDistance = min(distanceFromCenter / 100, 1.0)
+                                    let normalizedDistance = min(distanceFromCenter / (itemWidth * 2.5), 1.0)
 
                                     let scale = 1.0 - (normalizedDistance * 0.4)
-                                    let opacity = 1.0 - (normalizedDistance * 0.6)
-                                    let rotation = (itemCenterX - centerX) / 10
+                                    let opacity = 1.0 - (normalizedDistance * 0.7)
+                                    let rotation = (itemCenterX - centerX) / 5
+                                    let isCenter = distanceFromCenter < itemWidth / 2
 
-                                    VStack(spacing: 4) {
+                                    VStack(spacing: 2) {
                                         Text("\(day)")
-                                            .font(.system(size: 28, weight: .medium))
+                                            .font(.system(size: isCenter ? 24 : 18, weight: isCenter ? .bold : .medium))
                                             .foregroundColor(dayEntry != nil ? .primary : .secondary)
 
                                         Text(dayOfWeek(for: date))
-                                            .font(.caption)
+                                            .font(.system(size: 10, weight: .medium))
                                             .foregroundColor(.secondary)
+                                            .textCase(.uppercase)
                                     }
+                                    .background(
+                                        Circle()
+                                            .fill(dayEntry != nil ? Color(.systemTeal).opacity(0.24) : Color.clear)
+                                            .frame(width: 26, height: 26)
+                                            .blur(radius: 4)
+                                    )
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .scaleEffect(scale)
                                     .opacity(opacity)
                                     .rotation3DEffect(
                                         .degrees(rotation),
                                         axis: (x: 0, y: 1, z: 0),
-                                        perspective: 0.5
+                                        perspective: 0.3
                                     )
                                     .onTapGesture {
                                         if let dayEntry {
@@ -373,7 +427,7 @@ struct DateDialView: View {
                                         }
                                     }
                                 }
-                                .frame(width: 80, height: 100)
+                                .frame(width: itemWidth)
                                 .id(day)
                             }
                         }
@@ -388,26 +442,15 @@ struct DateDialView: View {
                         }
                     }
                 }
-                .contentMargins(.horizontal, centerX - 40, for: .scrollContent)
+                .contentMargins(.horizontal, centerX - (itemWidth / 2), for: .scrollContent)
                 .scrollTargetBehavior(.viewAligned)
                 .scrollPosition(id: $scrolledDay, anchor: .center)
-                .sensoryFeedback(.selection, trigger: scrolledDay)
                 .coordinateSpace(name: "scroll")
-                .onChange(of: scrolledDay) { _, newDay in
-                    guard let newDay, 
-                          let newDate = calendar.date(from: DateComponents(year: year, month: month, day: newDay)),
-                          !calendar.isDate(newDate, inSameDayAs: entry.date) else { return }
-                    
-                    if let newEntry = entryForDate(newDate) {
-                        thumbnailCache.preloadImage(for: newEntry)
-                        withAnimation(.easeInOut) {
-                            selectedEntry = newEntry
-                        }
-                    }
-                }
+                .allowsHitTesting(true)
+                .zIndex(2)
             }
         }
-        .frame(height: 100)
+        .frame(height: 60)
     }
     
     private func dayOfWeek(for date: Date) -> String {
