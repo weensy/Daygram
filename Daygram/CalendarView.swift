@@ -20,6 +20,7 @@ struct CalendarView: View {
     @State private var showingDeleteAlert = false
     @State private var showingShareSheet = false
     @State private var showingEditEntry = false
+    @State private var dragOffset: CGFloat = 0
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -234,51 +235,73 @@ struct CalendarView: View {
                 VStack(spacing: 0) {
                     Spacer()
 
-                    HStack {
-                        Spacer()
-                        Menu {
-                            Button(action: {
-                                showingEditEntry = true
-                            }) {
-                                Label("Edit", systemImage: "pencil")
-                            }
+                    VStack(spacing: 0) {
+                        HStack {
+                            Spacer()
+                            Menu {
+                                Button(action: {
+                                    showingEditEntry = true
+                                }) {
+                                    Label("Edit", systemImage: "pencil")
+                                }
 
-                            Button(action: {
-                                showingShareSheet = true
-                            }) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                            }
+                                Button(action: {
+                                    showingShareSheet = true
+                                }) {
+                                    Label("Share", systemImage: "square.and.arrow.up")
+                                }
 
-                            Button(role: .destructive, action: {
-                                showingDeleteAlert = true
-                            }) {
-                                Label("Delete", systemImage: "trash")
+                                Button(role: .destructive, action: {
+                                    showingDeleteAlert = true
+                                }) {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.blue)
+                                    .padding(16)
+                                    .contentShape(Circle())
+                                    .glassEffect(.regular, in: .circle)
+                                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                             }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.blue)
-                                .padding(16)
-                                .contentShape(Circle())
-                                .glassEffect(.regular, in: .circle)
-                                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
                         }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
 
-                    EntryDetailView(
-                        entry: entry,
-                        onDismiss: dismissEntryDetail,
-                        isEditing: .constant(false),
-                        editedText: .constant(""),
-                        onSave: nil
+                        EntryDetailView(
+                            entry: entry,
+                            onDismiss: dismissEntryDetail,
+                            isEditing: .constant(false),
+                            editedText: .constant(""),
+                            onSave: nil
+                        )
+                            .frame(maxWidth: width)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .background(colorScheme == .dark ? Color(.systemGray3) : Color.white)
+                            // .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    }
+                    .offset(y: dragOffset)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                // Only allow downward dragging
+                                if value.translation.height > 0 {
+                                    dragOffset = value.translation.height
+                                }
+                            }
+                            .onEnded { value in
+                                if value.translation.height > 100 {
+                                    // Dismiss if dragged down more than 100 points
+                                    dismissEntryDetail()
+                                }
+                                // Reset offset
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    dragOffset = 0
+                                }
+                            }
                     )
-                        .frame(maxWidth: width)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .background(colorScheme == .dark ? Color(.systemGray3) : Color.white)
-                        // .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
 
                     Spacer()
 
