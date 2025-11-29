@@ -278,9 +278,11 @@ struct CalendarView: View {
                         )
                             .frame(maxWidth: width)
                             .fixedSize(horizontal: false, vertical: true)
-                            .background(colorScheme == .dark ? Color(.systemGray3) : Color.white)
-                            // .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                            .background(
+                                Rectangle()
+                                    .fill(colorScheme == .dark ? Color(.systemGray3) : Color.white)
+                                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                            )
                     }
                     .offset(y: dragOffset)
                     .gesture(
