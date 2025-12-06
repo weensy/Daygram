@@ -123,8 +123,9 @@ struct CalendarView: View {
             }
             .sheet(isPresented: $showingShareSheet) {
                 if let entry = selectedEntry,
-                   let image = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName) {
-                    ShareSheet(items: [image, entry.text])
+                   let originalImage = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName),
+                   let shareImage = EntryImageRenderer.render(entry: entry, image: originalImage) {
+                    ShareSheet(items: [shareImage])
                 }
             }
             .sheet(isPresented: $showingEditEntry) {
