@@ -54,13 +54,27 @@ struct EntryDetailView: View {
     }
     
     private var imageSection: some View {
-        VStack(spacing: 12) {
+        Group {
             if let image = displayImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    // .clipShape(RoundedRectangle(cornerRadius: 12))
-                    // .shadow(radius: 4)
+                let imageAspect = image.size.width / image.size.height
+                let maxAspect: CGFloat = 2.0 / 3.0 // 2:3 ratio (width:height)
+                
+                if imageAspect >= maxAspect {
+                    // Image is wider or equal to 2:3, show normally with .fit
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    // Image is taller than 2:3, crop to 2:3
+                    Color.clear
+                        .aspectRatio(maxAspect, contentMode: .fit)
+                        .overlay(
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        )
+                        .clipped()
+                }
             } else {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.3))
