@@ -3,15 +3,25 @@ import UIKit
 
 extension UIFont {
     static func daygramFont(size: CGFloat) -> UIFont {
-        // Primary: Georgia-Italic (English)
-        // Secondary: MaruBuriot-Regular (Korean)
-        // Tertiary: KleeOne-SemiBold (Japanese)
+        // Font definitions
+        let englishFont = "Georgia-Italic"
+        let koreanFont = "MaruBuriot-Regular"
+        let japaneseFont = "KleeOne-SemiBold"
         
-        let fontNames = [
-            "Georgia-Italic",
-            "MaruBuriot-Regular",
-            "KleeOne-SemiBold"
-        ]
+        // Determine font order based on OS language
+        let fontNames: [String]
+        let preferredLanguage = Locale.preferredLanguages.first ?? "en"
+        
+        if preferredLanguage.hasPrefix("ko") {
+            // Korean
+            fontNames = [koreanFont, japaneseFont, englishFont]
+        } else if preferredLanguage.hasPrefix("ja") {
+            // Japanese
+            fontNames = [japaneseFont, koreanFont, englishFont]
+        } else {
+            // Default (English and others)
+            fontNames = [englishFont, koreanFont, japaneseFont]
+        }
         
         // Create the primary font descriptor
         var descriptor = UIFontDescriptor(name: fontNames[0], size: size)
