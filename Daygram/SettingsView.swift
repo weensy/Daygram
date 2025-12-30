@@ -143,12 +143,12 @@ struct SettingsView: View {
                                 }
                             // }
 
-                            Text("Daygram")
+                            Text(String(localized: "settings.app_name"))
                                 .font(.title2)
                                 .foregroundColor(.secondary)
                                 .fontWeight(.heavy)
 
-                            Text("One photo, One line")
+                            Text(String(localized: "settings.app_tagline"))
                                 .font(.headline)
                                 .foregroundColor(.secondary)
                                 .fontWeight(.light)
@@ -160,11 +160,11 @@ struct SettingsView: View {
                 }
                 .listRowBackground(Color.clear)
             }
-            .navigationTitle("Settings")
+            .navigationTitle(String(localized: "settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                 }

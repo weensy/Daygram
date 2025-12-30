@@ -36,17 +36,17 @@ struct AddEntryView: View {
                 
                 Spacer()
             }
-            .navigationTitle("New Memory")
+            .navigationTitle(String(localized: "add_entry.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button(String(localized: "common.save")) {
                         saveEntry()
                     }
                     .disabled(selectedImage == nil || isLoading)
@@ -81,14 +81,14 @@ struct AddEntryView: View {
             .onTapGesture {
                 showingSourcePicker = true
             }
-            .confirmationDialog("Change Photo", isPresented: $showingSourcePicker) {
-                Button("Camera") {
+            .confirmationDialog(String(localized: "add_entry.change_photo"), isPresented: $showingSourcePicker) {
+                Button(String(localized: "add_entry.camera")) {
                     showingImagePicker = true
                 }
-                Button("Photo Library") {
+                Button(String(localized: "add_entry.photo_library")) {
                     showingPhotoPicker = true
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(String(localized: "common.cancel"), role: .cancel) { }
             }
     }
     
@@ -102,20 +102,20 @@ struct AddEntryView: View {
                 }
         }
         .padding(.vertical, 24)
-        .confirmationDialog("Add a Photo", isPresented: $showingSourcePicker) {
-            Button("Camera") {
+        .confirmationDialog(String(localized: "add_entry.add_photo"), isPresented: $showingSourcePicker) {
+            Button(String(localized: "add_entry.camera")) {
                 showingImagePicker = true
             }
-            Button("Photo Library") {
+            Button(String(localized: "add_entry.photo_library")) {
                 showingPhotoPicker = true
             }
-            Button("Cancel", role: .cancel) { }
+            Button(String(localized: "common.cancel"), role: .cancel) { }
         }
     }
     
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Write a Line", text: $entryText, axis: .vertical)
+            TextField(String(localized: "add_entry.write_line"), text: $entryText, axis: .vertical)
                 .font(customFont())
                 .multilineTextAlignment(.center)
                 .textFieldStyle(.plain)

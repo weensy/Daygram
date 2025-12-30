@@ -111,15 +111,15 @@ struct CalendarView: View {
             .sheet(isPresented: $showingQuickAdd) {
                 AddEntryView(date: Date())
             }
-            .alert("Delete Entry", isPresented: $showingDeleteAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete", role: .destructive) {
+            .alert(String(localized: "calendar.delete_entry_title"), isPresented: $showingDeleteAlert) {
+                Button(String(localized: "common.cancel"), role: .cancel) { }
+                Button(String(localized: "common.delete"), role: .destructive) {
                     if let entry = selectedEntry {
                         deleteEntry(entry)
                     }
                 }
             } message: {
-                Text("This will permanently delete this memory. This action cannot be undone.")
+                Text(String(localized: "calendar.delete_entry_message"))
             }
             .sheet(isPresented: $showingShareSheet) {
                 if let entry = selectedEntry,
@@ -243,19 +243,19 @@ struct CalendarView: View {
                                 Button(action: {
                                     showingEditEntry = true
                                 }) {
-                                    Label("Edit", systemImage: "pencil")
+                                    Label(String(localized: "common.edit"), systemImage: "pencil")
                                 }
 
                                 Button(action: {
                                     showingShareSheet = true
                                 }) {
-                                    Label("Share", systemImage: "square.and.arrow.up")
+                                    Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
                                 }
 
                                 Button(role: .destructive, action: {
                                     showingDeleteAlert = true
                                 }) {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(String(localized: "common.delete"), systemImage: "trash")
                                 }
                             } label: {
                                 Image(systemName: "ellipsis")
@@ -699,17 +699,17 @@ struct DateDialView: View {
     private var statsSection: some View {
         HStack(spacing: 12) {
             StatItem(
-                title: "Streak",
+                title: String(localized: "calendar.stats.streak"),
                 value: "\(currentStreak)"
             )
             
             StatItem(
-                title: "Weeks",
+                title: String(localized: "calendar.stats.weeks"),
                 value: "\(fullWeeks)"
             )
             
             StatItem(
-                title: "Memories",
+                title: String(localized: "calendar.stats.memories"),
                 value: "\(entries.count)"
             )
         }

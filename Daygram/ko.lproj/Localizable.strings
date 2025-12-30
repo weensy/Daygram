@@ -1,0 +1,38 @@
+/* 
+  Localizable.strings (Korean)
+  Daygram
+*/
+
+// MARK: - Common
+"common.cancel" = "취소";
+"common.save" = "저장";
+"common.delete" = "삭제";
+"common.edit" = "수정";
+"common.share" = "공유";
+"common.done" = "완료";
+"common.ok" = "확인";
+"common.error" = "오류";
+
+// MARK: - CalendarView
+"calendar.delete_entry_title" = "기록 삭제";
+"calendar.delete_entry_message" = "이 기록이 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.";
+"calendar.stats.streak" = "연속";
+"calendar.stats.weeks" = "주";
+"calendar.stats.memories" = "기록";
+
+// MARK: - AddEntryView
+"add_entry.title" = "새 기록";
+"add_entry.change_photo" = "사진 변경";
+"add_entry.add_photo" = "사진 추가";
+"add_entry.camera" = "카메라";
+"add_entry.photo_library" = "사진 보관함";
+"add_entry.write_line" = "한 줄 쓰기";
+
+// MARK: - EditEntryView
+"edit_entry.title" = "기록 수정";
+"edit_entry.loading_image" = "사진 불러오는 중...";
+
+// MARK: - SettingsView
+"settings.title" = "설정";
+"settings.app_name" = "데이그램";
+"settings.app_tagline" = "하루 한 장, 하루 한 줄";

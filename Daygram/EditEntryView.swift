@@ -39,17 +39,17 @@ struct EditEntryView: View {
                 
                 Spacer()
             }
-            .navigationTitle("Edit Memory")
+            .navigationTitle(String(localized: "edit_entry.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button(String(localized: "common.save")) {
                         saveEntry()
                     }
                     .disabled(isLoading)
@@ -87,14 +87,14 @@ struct EditEntryView: View {
             .onTapGesture {
                 showingSourcePicker = true
             }
-            .confirmationDialog("Change Photo", isPresented: $showingSourcePicker) {
-                Button("Camera") {
+            .confirmationDialog(String(localized: "add_entry.change_photo"), isPresented: $showingSourcePicker) {
+                Button(String(localized: "add_entry.camera")) {
                     showingImagePicker = true
                 }
-                Button("Photo Library") {
+                Button(String(localized: "add_entry.photo_library")) {
                     showingPhotoPicker = true
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(String(localized: "common.cancel"), role: .cancel) { }
             }
     }
     
@@ -103,7 +103,7 @@ struct EditEntryView: View {
             ProgressView()
                 .scaleEffect(1.5)
             
-            Text("Loading image...")
+            Text(String(localized: "edit_entry.loading_image"))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -112,7 +112,7 @@ struct EditEntryView: View {
     
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Write a Line", text: $editedText, axis: .vertical)
+            TextField(String(localized: "add_entry.write_line"), text: $editedText, axis: .vertical)
                 .font(customFont())
                 .multilineTextAlignment(.center)
                 .textFieldStyle(.plain)

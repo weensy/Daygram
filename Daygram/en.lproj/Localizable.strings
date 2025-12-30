@@ -1,0 +1,38 @@
+/* 
+  Localizable.strings (English)
+  Daygram
+*/
+
+// MARK: - Common
+"common.cancel" = "Cancel";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.edit" = "Edit";
+"common.share" = "Share";
+"common.done" = "Done";
+"common.ok" = "OK";
+"common.error" = "Error";
+
+// MARK: - CalendarView
+"calendar.delete_entry_title" = "Delete Entry";
+"calendar.delete_entry_message" = "This will permanently delete this memory. This action cannot be undone.";
+"calendar.stats.streak" = "Streak";
+"calendar.stats.weeks" = "Weeks";
+"calendar.stats.memories" = "Memories";
+
+// MARK: - AddEntryView
+"add_entry.title" = "New Memory";
+"add_entry.change_photo" = "Change Photo";
+"add_entry.add_photo" = "Add a Photo";
+"add_entry.camera" = "Camera";
+"add_entry.photo_library" = "Photo Library";
+"add_entry.write_line" = "Write a Line";
+
+// MARK: - EditEntryView
+"edit_entry.title" = "Edit Memory";
+"edit_entry.loading_image" = "Loading image...";
+
+// MARK: - SettingsView
+"settings.title" = "Settings";
+"settings.app_name" = "Daygram";
+"settings.app_tagline" = "One photo, One line";

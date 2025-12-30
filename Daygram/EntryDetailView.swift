@@ -97,13 +97,13 @@ struct EntryDetailView: View {
                 
                 if isEditing {
                     HStack(spacing: 12) {
-                        Button("Cancel") {
+                        Button(String(localized: "common.cancel")) {
                             isEditing = false
                             editedText = entry.text
                         }
                         .foregroundColor(.secondary)
                         
-                        Button("Save") {
+                        Button(String(localized: "common.save")) {
                             onSave?()
                         }
                         .fontWeight(.medium)
