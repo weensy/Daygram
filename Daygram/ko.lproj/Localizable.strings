@@ -36,3 +36,13 @@
 "settings.title" = "설정";
 "settings.app_name" = "데이그램";
 "settings.app_tagline" = "하루 한 장, 하루 한 줄";
+
+// MARK: - Reminder
+"settings.reminder.title" = "알림";
+"settings.reminder.daily_reminder" = "매일 알림";
+"settings.reminder.time" = "시간";
+"settings.reminder.permission_title" = "알림 권한";
+"settings.reminder.permission_message" = "매일 알림을 받으려면 설정에서 알림을 허용해 주세요";
+"settings.reminder.open_settings" = "설정 열기";
+"notification.reminder.title" = "오늘 하루 기록하기";
+"notification.reminder.body" = "오늘의 순간을 사진 한 장과 한 줄로 남겨보세요";

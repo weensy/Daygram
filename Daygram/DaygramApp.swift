@@ -15,6 +15,10 @@ struct DaygramApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+    
+    init() {
+        restoreNotificationSchedule()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -23,5 +27,17 @@ struct DaygramApp: App {
             CalendarView()
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private func restoreNotificationSchedule() {
+        let enabled = UserDefaults.standard.bool(forKey: "dailyReminderEnabled")
+        if enabled {
+            let hour = UserDefaults.standard.integer(forKey: "reminderHour")
+            let minute = UserDefaults.standard.integer(forKey: "reminderMinute")
+            NotificationManager.shared.scheduleDailyReminder(
+                hour: hour == 0 ? 22 : hour,
+                minute: minute
+            )
+        }
     }
 }

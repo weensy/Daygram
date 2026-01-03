@@ -36,3 +36,13 @@
 "settings.title" = "Settings";
 "settings.app_name" = "Daygram";
 "settings.app_tagline" = "One photo, One line";
+
+// MARK: - Reminder
+"settings.reminder.title" = "Reminder";
+"settings.reminder.daily_reminder" = "Daily Reminder";
+"settings.reminder.time" = "Time";
+"settings.reminder.permission_title" = "Notification Permission";
+"settings.reminder.permission_message" = "Please enable notifications in Settings to receive daily reminders.";
+"settings.reminder.open_settings" = "Open Settings";
+"notification.reminder.title" = "Time to Write";
+"notification.reminder.body" = "Capture today's moment with a photo and a line.";

@@ -11,6 +11,12 @@ struct SettingsView: View {
     @State private var isAuthenticating = false
     @State private var verificationPurpose: VerificationPurpose = .changePasscode
     
+    // Reminder settings
+    @AppStorage("dailyReminderEnabled") private var dailyReminderEnabled = false
+    @AppStorage("reminderHour") private var reminderHour = 22
+    @AppStorage("reminderMinute") private var reminderMinute = 0
+    @State private var showingPermissionDeniedAlert = false
+    
     enum VerificationPurpose {
         case changePasscode
         case disableAppLock
@@ -118,6 +124,46 @@ struct SettingsView: View {
                 //     }
                 // }
 
+                // MARK: - Reminder Section
+                Section {
+                    Toggle(String(localized: "settings.reminder.daily_reminder"), isOn: Binding(
+                        get: { dailyReminderEnabled },
+                        set: { newValue in
+                            if newValue {
+                                enableReminder()
+                            } else {
+                                disableReminder()
+                            }
+                        }
+                    ))
+                    
+                    if dailyReminderEnabled {
+                        DatePicker(
+                            String(localized: "settings.reminder.time"),
+                            selection: Binding(
+                                get: {
+                                    var components = DateComponents()
+                                    components.hour = reminderHour
+                                    components.minute = reminderMinute
+                                    return Calendar.current.date(from: components) ?? Date()
+                                },
+                                set: { newDate in
+                                    let components = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                                    reminderHour = components.hour ?? 22
+                                    reminderMinute = components.minute ?? 0
+                                    NotificationManager.shared.scheduleDailyReminder(
+                                        hour: reminderHour,
+                                        minute: reminderMinute
+                                    )
+                                }
+                            ),
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
+                } header: {
+                    Text(String(localized: "settings.reminder.title"))
+                }
+
                 Section {
                     HStack {
                         Spacer()
@@ -213,6 +259,61 @@ struct SettingsView: View {
             )
             .navigationBarHidden(true)
         }
+        .alert(String(localized: "settings.reminder.permission_title"), isPresented: $showingPermissionDeniedAlert) {
+            Button(String(localized: "settings.reminder.open_settings")) {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "settings.reminder.permission_message"))
+        }
+    }
+    
+    // MARK: - Reminder Functions
+    
+    private func enableReminder() {
+        Task {
+            let status = await NotificationManager.shared.checkAuthorizationStatus()
+            
+            await MainActor.run {
+                switch status {
+                case .notDetermined:
+                    Task {
+                        let granted = await NotificationManager.shared.requestAuthorization()
+                        await MainActor.run {
+                            if granted {
+                                dailyReminderEnabled = true
+                                NotificationManager.shared.scheduleDailyReminder(
+                                    hour: reminderHour,
+                                    minute: reminderMinute
+                                )
+                            } else {
+                                dailyReminderEnabled = false
+                                showingPermissionDeniedAlert = true
+                            }
+                        }
+                    }
+                case .authorized, .provisional:
+                    dailyReminderEnabled = true
+                    NotificationManager.shared.scheduleDailyReminder(
+                        hour: reminderHour,
+                        minute: reminderMinute
+                    )
+                case .denied:
+                    dailyReminderEnabled = false
+                    showingPermissionDeniedAlert = true
+                @unknown default:
+                    dailyReminderEnabled = false
+                }
+            }
+        }
+    }
+    
+    private func disableReminder() {
+        dailyReminderEnabled = false
+        NotificationManager.shared.cancelDailyReminder()
     }
     
     private func enableAppLock() {
