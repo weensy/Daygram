@@ -21,6 +21,7 @@ struct CalendarView: View {
     @State private var showingShareSheet = false
     @State private var showingEditEntry = false
     @State private var dragOffset: CGFloat = 0
+    @State private var currentCarouselIndex: Int = 0
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -218,14 +219,19 @@ struct CalendarView: View {
         .frame(height: 520)
     }
 
+    /// Entries for the currently displayed month, sorted by date
+    private var monthEntriesForCarousel: [MemoryEntry] {
+        entries.filter { entry in
+            calendar.isDate(entry.date, equalTo: selectedMonth, toGranularity: .month)
+        }.sorted { $0.date < $1.date }
+    }
+    
     @ViewBuilder
     private func entryDetailOverlay(for entry: MemoryEntry) -> some View {
+        let monthEntries = monthEntriesForCarousel
+        let initialIndex = monthEntries.firstIndex(where: { $0.id == entry.id }) ?? 0
+        
         GeometryReader { geometry in
-            let rawWidth = geometry.size.width - 32
-            let width = rawWidth > 0 ? min(rawWidth, 620) : geometry.size.width
-            let rawHeight = geometry.size.height - 80
-            let _ = rawHeight > 0 ? min(rawHeight, geometry.size.height * 0.95) : geometry.size.height
-
             ZStack {
                 Color.black.opacity(0.35)
                     .ignoresSafeArea()
@@ -233,83 +239,96 @@ struct CalendarView: View {
                         dismissEntryDetail()
                     }
 
-                VStack(spacing: 0) {
-                    Spacer()
-
-                    VStack(spacing: 0) {
+                ZStack {
+                    // Carousel fills the screen
+                    EntryCarouselView(
+                        entries: monthEntries,
+                        currentIndex: $currentCarouselIndex,
+                        onDismiss: dismissEntryDetail
+                    )
+                    
+                    // Floating UI elements
+                    VStack {
+                        // Action buttons at top
                         HStack {
-                            Spacer()
-                            Menu {
-                                Button(action: {
-                                    showingEditEntry = true
-                                }) {
-                                    Label(String(localized: "common.edit"), systemImage: "pencil")
-                                }
-
-                                Button(action: {
-                                    showingShareSheet = true
-                                }) {
-                                    Label(String(localized: "common.share"), systemImage: "square.and.arrow.up")
-                                }
-
-                                Button(role: .destructive, action: {
-                                    showingDeleteAlert = true
-                                }) {
-                                    Label(String(localized: "common.delete"), systemImage: "trash")
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.blue)
-                                    .padding(16)
-                                    .contentShape(Circle())
-                                    .glassEffect(.regular, in: .circle)
-                                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            // Delete button (left aligned)
+                            Button(action: {
+                                showingDeleteAlert = true
+                            }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.red)
+                                    .frame(width: 44, height: 44)
                             }
+                            .glassEffect(.regular.interactive(), in: .circle)
+                            
+                            Spacer()
+                            
+                            // Edit button (right aligned)
+                            Button(action: {
+                                showingEditEntry = true
+                            }) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 44, height: 44)
+                            }
+                            .glassEffect(.regular.interactive(), in: .circle)
+                            
+                            // Share button
+                            Button(action: {
+                                showingShareSheet = true
+                            }) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 44, height: 44)
+                            }
+                            .glassEffect(.regular.interactive(), in: .circle)
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-
-                        EntryDetailView(
-                            entry: entry,
-                            onDismiss: dismissEntryDetail,
-                            isEditing: .constant(false),
-                            editedText: .constant(""),
-                            onSave: nil
-                        )
-                            .frame(maxWidth: width)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .background(
-                                Rectangle()
-                                    .fill(colorScheme == .dark ? Color(.systemGray3) : Color.white)
-                                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        // .padding(.top, 16)
+                        
+                        Spacer()
+                        
+                        // Thumbnail indicator at bottom
+                        if monthEntries.count > 1 {
+                            ThumbnailIndicatorView(
+                                entries: monthEntries,
+                                currentIndex: $currentCarouselIndex
                             )
+                            // .padding(.bottom, 12)
+                        }
                     }
-                    .offset(y: dragOffset)
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                // Only allow downward dragging
-                                if value.translation.height > 0 {
-                                    dragOffset = value.translation.height
-                                }
-                            }
-                            .onEnded { value in
-                                if value.translation.height > 100 {
-                                    // Dismiss if dragged down more than 100 points
-                                    dismissEntryDetail()
-                                }
-                                // Reset offset
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    dragOffset = 0
-                                }
-                            }
-                    )
-
-                    Spacer()
                 }
+                .offset(y: dragOffset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if value.translation.height > 0 {
+                                dragOffset = value.translation.height
+                            }
+                        }
+                        .onEnded { value in
+                            if value.translation.height > 100 {
+                                dismissEntryDetail()
+                            }
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                dragOffset = 0
+                            }
+                        }
+                )
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+            .onAppear {
+                currentCarouselIndex = initialIndex
+            }
+            .onChange(of: currentCarouselIndex) { _, newIndex in
+                // Update selectedEntry when carousel changes
+                if newIndex >= 0 && newIndex < monthEntries.count {
+                    selectedEntry = monthEntries[newIndex]
+                }
+            }
         }
     }
 

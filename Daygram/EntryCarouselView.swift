@@ -1,0 +1,131 @@
+import SwiftUI
+import SwiftData
+
+struct EntryCarouselView: View {
+    let entries: [MemoryEntry]
+    @Binding var currentIndex: Int
+    var onDismiss: () -> Void
+    
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var scrolledID: Int?
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let cardWidth = min(geometry.size.width - 32, 620)
+            let spacing: CGFloat = 16
+            
+            VStack {
+                Spacer()
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: spacing) {
+                        ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                            EntryCardView(
+                                entry: entry,
+                                cardWidth: cardWidth,
+                                geometry: geometry,
+                                currentIndex: scrolledID ?? currentIndex,
+                                index: index
+                            )
+                            .id(index)
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .contentMargins(.horizontal, (geometry.size.width - cardWidth) / 2, for: .scrollContent)
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $scrolledID)
+                .onAppear {
+                    scrolledID = currentIndex
+                }
+                .onChange(of: scrolledID) { _, newValue in
+                    // Sync scroll position to binding
+                    if let newValue = newValue {
+                        currentIndex = newValue
+                    }
+                }
+                .onChange(of: currentIndex) { oldValue, newValue in
+                    // Sync binding changes to scroll position (from thumbnail tap)
+                    if scrolledID != newValue {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            scrolledID = newValue
+                        }
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+    }
+}
+
+// MARK: - Entry Card View
+private struct EntryCardView: View {
+    let entry: MemoryEntry
+    let cardWidth: CGFloat
+    let geometry: GeometryProxy
+    let currentIndex: Int
+    let index: Int
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        EntryDetailView(
+            entry: entry,
+            onDismiss: nil,
+            isEditing: .constant(false),
+            editedText: .constant(""),
+            onSave: nil
+        )
+        .frame(width: cardWidth)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(
+            Rectangle()
+                .fill(colorScheme == .dark ? Color(.systemGray3) : Color.white)
+                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+        )
+        // 3D rotation effect for adjacent cards
+        .rotation3DEffect(
+            .degrees(rotationAngle),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.5
+        )
+        .opacity(opacity)
+        .scaleEffect(scale)
+        .animation(.easeOut(duration: 0.2), value: currentIndex)
+    }
+    
+    private var offset: CGFloat {
+        CGFloat(index - currentIndex)
+    }
+    
+    private var rotationAngle: Double {
+        // Adjacent cards tilt inward
+        let maxRotation: Double = 25
+        return -Double(offset) * maxRotation
+    }
+    
+    private var opacity: Double {
+        let distance = abs(offset)
+        return max(1.0 - Double(distance) * 0.3, 0.5)
+    }
+    
+    private var scale: CGFloat {
+        let distance = abs(offset)
+        return max(1.0 - distance * 0.1, 0.85)
+    }
+}
+
+#Preview {
+    @Previewable @State var currentIndex = 0
+    
+    return EntryCarouselView(
+        entries: [
+            MemoryEntry(date: Date(), text: "First entry", imageFileName: "test1.jpg", thumbnailFileName: "test1_thumb.jpg"),
+            MemoryEntry(date: Date().addingTimeInterval(86400), text: "Second entry", imageFileName: "test2.jpg", thumbnailFileName: "test2_thumb.jpg"),
+        ],
+        currentIndex: $currentIndex,
+        onDismiss: {}
+    )
+    .modelContainer(for: MemoryEntry.self, inMemory: true)
+}
