@@ -4,6 +4,7 @@ import SwiftData
 struct EntryCarouselView: View {
     let entries: [MemoryEntry]
     @Binding var currentIndex: Int
+    var isScrollDisabled: Bool
     var onDismiss: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
@@ -32,6 +33,7 @@ struct EntryCarouselView: View {
                     }
                     .scrollTargetLayout()
                 }
+                .scrollDisabled(isScrollDisabled)  // Disable scroll during dismiss gesture
                 .contentMargins(.horizontal, (geometry.size.width - cardWidth) / 2, for: .scrollContent)
                 .scrollTargetBehavior(.viewAligned)
                 .scrollPosition(id: $scrolledID)
@@ -125,6 +127,7 @@ private struct EntryCardView: View {
             MemoryEntry(date: Date().addingTimeInterval(86400), text: "Second entry", imageFileName: "test2.jpg", thumbnailFileName: "test2_thumb.jpg"),
         ],
         currentIndex: $currentIndex,
+        isScrollDisabled: false,
         onDismiss: {}
     )
     .modelContainer(for: MemoryEntry.self, inMemory: true)

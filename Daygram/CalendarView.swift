@@ -22,6 +22,7 @@ struct CalendarView: View {
     @State private var showingEditEntry = false
     @State private var dragOffset: CGFloat = 0
     @State private var currentCarouselIndex: Int = 0
+    @State private var isDismissGesture = false
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -240,14 +241,43 @@ struct CalendarView: View {
                     }
 
                 ZStack {
-                    // Carousel fills the screen
+                    // Carousel fills the screen - moves with swipe
                     EntryCarouselView(
                         entries: monthEntries,
                         currentIndex: $currentCarouselIndex,
+                        isScrollDisabled: isDismissGesture,
                         onDismiss: dismissEntryDetail
                     )
+                    .offset(y: dragOffset)
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 5)
+                            .onChanged { value in
+                                // Direction lock: determine gesture type on first significant movement
+                                if !isDismissGesture {
+                                    // If vertical movement is dominant (downward), enable dismiss mode
+                                    if value.translation.height > 0 &&
+                                       abs(value.translation.height) > abs(value.translation.width) {
+                                        isDismissGesture = true
+                                    }
+                                }
+                                
+                                // Update offset in dismiss mode - follow finger immediately
+                                if isDismissGesture {
+                                    dragOffset = max(0, value.translation.height)
+                                }
+                            }
+                            .onEnded { value in
+                                if isDismissGesture && value.translation.height > 100 {
+                                    dismissEntryDetail()
+                                }
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    dragOffset = 0
+                                }
+                                isDismissGesture = false  // Reset for next gesture
+                            }
+                    )
                     
-                    // Floating UI elements
+                    // Floating UI elements - stays in place
                     VStack {
                         // Action buttons at top
                         HStack {
@@ -301,23 +331,6 @@ struct CalendarView: View {
                         }
                     }
                 }
-                .offset(y: dragOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            if value.translation.height > 0 {
-                                dragOffset = value.translation.height
-                            }
-                        }
-                        .onEnded { value in
-                            if value.translation.height > 100 {
-                                dismissEntryDetail()
-                            }
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                dragOffset = 0
-                            }
-                        }
-                )
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .onAppear {
