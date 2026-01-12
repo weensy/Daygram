@@ -1,5 +1,7 @@
 import UIKit
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 class ImageStorageManager {
     static let shared = ImageStorageManager()
@@ -21,15 +23,47 @@ class ImageStorageManager {
         try? FileManager.default.createDirectory(at: thumbnailsDirectory, withIntermediateDirectories: true)
     }
     
-    func saveImage(_ image: UIImage) -> (imageFileName: String?, thumbnailFileName: String?) {
-        let imageFileName = "\(UUID().uuidString).jpg"
-        let thumbnailFileName = "\(UUID().uuidString)_thumb.jpg"
+    private func heicData(from image: UIImage, compressionQuality: CGFloat) -> Data? {
+        // Normalize orientation by redrawing the image
+        // This ensures the orientation is baked into the pixel data
+        let normalizedImage: UIImage
+        if image.imageOrientation == .up {
+            normalizedImage = image
+        } else {
+            UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+            normalizedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+            UIGraphicsEndImageContext()
+        }
         
-        let resizedImage = resizeImage(image, maxDimension: 3000)
+        guard let cgImage = normalizedImage.cgImage else { return nil }
+        
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            UTType.heic.identifier as CFString,
+            1,
+            nil
+        ) else { return nil }
+        
+        let options: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: compressionQuality
+        ]
+        
+        CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        
+        return data as Data
+    }
+    
+    func saveImage(_ image: UIImage) -> (imageFileName: String?, thumbnailFileName: String?) {
+        let imageFileName = "\(UUID().uuidString).heic"
+        let thumbnailFileName = "\(UUID().uuidString)_thumb.heic"
+        
         let thumbnailImage = resizeImage(image, maxDimension: 400)
         
-        guard let imageData = resizedImage.jpegData(compressionQuality: 0.8),
-              let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.8) else {
+        guard let imageData = heicData(from: image, compressionQuality: 0.9),
+              let thumbnailData = heicData(from: thumbnailImage, compressionQuality: 0.8) else {
             return (nil, nil)
         }
         
