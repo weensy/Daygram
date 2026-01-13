@@ -8,7 +8,9 @@ struct EntryCarouselView: View {
     var onDismiss: () -> Void
     
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var thumbnailCache = ThumbnailCache.shared
     @State private var scrolledID: Int?
+    @State private var didPreloadInitialRange = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -37,8 +39,22 @@ struct EntryCarouselView: View {
                 .contentMargins(.horizontal, (geometry.size.width - cardWidth) / 2, for: .scrollContent)
                 .scrollTargetBehavior(.viewAligned)
                 .scrollPosition(id: $scrolledID)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 8)
+                        .onChanged { value in
+                            guard !isScrollDisabled else { return }
+                            let direction = value.translation.width
+                            if abs(direction) < 12 {
+                                return
+                            }
+                            let nextIndex = direction < 0 ? currentIndex + 1 : currentIndex - 1
+                            preloadNearImages(for: nextIndex)
+                        }
+                )
                 .onAppear {
                     scrolledID = currentIndex
+                    preloadInitialRangeIfNeeded(for: currentIndex)
+                    preloadNearImages(for: currentIndex)
                 }
                 .onChange(of: scrolledID) { _, newValue in
                     // Sync scroll position to binding
@@ -53,9 +69,33 @@ struct EntryCarouselView: View {
                             scrolledID = newValue
                         }
                     }
+                    preloadNearImages(for: newValue)
                 }
                 
                 Spacer()
+            }
+        }
+    }
+
+    private func preloadNearImages(for index: Int) {
+        preloadAround(index: index, radius: 2)
+    }
+
+    private func preloadInitialRangeIfNeeded(for index: Int) {
+        guard !didPreloadInitialRange else { return }
+        didPreloadInitialRange = true
+        preloadAround(index: index, radius: 5)
+    }
+
+    private func preloadAround(index: Int, radius: Int) {
+        guard !entries.isEmpty else { return }
+        let maxIndex = entries.count - 1
+        for distance in 0...radius {
+            let offsets = distance == 0 ? [0] : [distance, -distance]
+            for offset in offsets {
+                let idx = index + offset
+                guard idx >= 0 && idx <= maxIndex else { continue }
+                thumbnailCache.preloadImage(for: entries[idx])
             }
         }
     }
@@ -71,13 +111,19 @@ private struct EntryCardView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
+    // Only load images for cards within ±1 of current index
+    private var isNearVisible: Bool {
+        abs(index - currentIndex) <= 1
+    }
+    
     var body: some View {
         EntryDetailView(
             entry: entry,
             onDismiss: nil,
             isEditing: .constant(false),
             editedText: .constant(""),
-            onSave: nil
+            onSave: nil,
+            shouldLoadImage: isNearVisible
         )
         .frame(width: cardWidth)
         .fixedSize(horizontal: false, vertical: true)

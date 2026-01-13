@@ -7,12 +7,16 @@ struct EntryDetailView: View {
     @Binding var isEditing: Bool
     @Binding var editedText: String
     var onSave: (() -> Void)?
+    var shouldLoadImage: Bool = true
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @StateObject private var imageCache = ThumbnailCache.shared
 
     @State private var displayImage: UIImage?
+    @State private var lastLoadedFileName: String?
+    @State private var lastLoadedThumbnailFileName: String?
+    @State private var isDisplayingThumbnail = false
 
     private let textLimit = 100
 
@@ -34,10 +38,19 @@ struct EntryDetailView: View {
             footerSection
         }
         .onAppear {
+            loadThumbnailIfNeeded()
             loadImage()
         }
         .onChange(of: entry.imageFileName) { _, _ in
             loadImage()
+        }
+        .onChange(of: entry.thumbnailFileName) { _, _ in
+            loadThumbnailIfNeeded()
+        }
+        .onChange(of: shouldLoadImage) { _, newValue in
+            if newValue && (displayImage == nil || lastLoadedFileName != entry.imageFileName) {
+                loadImage()
+            }
         }
     }
     
@@ -164,17 +177,64 @@ struct EntryDetailView: View {
     
     
     private func loadImage() {
-        // Load image in background
+        let fileName = entry.imageFileName
+        lastLoadedFileName = fileName
+        
+        // 1. Check cache first
+        if let cachedImage = imageCache.getImage(for: fileName) {
+            displayImage = cachedImage
+            isDisplayingThumbnail = false
+            return
+        }
+        
+        // Avoid disk I/O for offscreen cards.
+        guard shouldLoadImage else { return }
+        
+        // 2. Load from disk only if not in cache
         Task {
-            let fileName = entry.imageFileName // Extract from main actor context
             let image = await Task.detached(priority: .userInitiated) {
                 return ImageStorageManager.shared.loadImage(fileName: fileName)
             }.value
             
-            displayImage = image
+            guard lastLoadedFileName == fileName else { return }
+            
             if let image = image {
-                // Update cache with new image
-                imageCache.cacheImage(image, fileName: fileName)
+                // Cache the resized image
+                let resizedImage = imageCache.cacheImage(image, fileName: fileName)
+                displayImage = resizedImage
+                isDisplayingThumbnail = false
+            } else {
+                displayImage = nil
+                isDisplayingThumbnail = false
+            }
+        }
+    }
+
+    private func loadThumbnailIfNeeded() {
+        let fileName = entry.thumbnailFileName
+        lastLoadedThumbnailFileName = fileName
+        
+        if let cachedThumbnail = imageCache.getThumbnail(for: fileName) {
+            if displayImage == nil || isDisplayingThumbnail {
+                displayImage = cachedThumbnail
+                isDisplayingThumbnail = true
+            }
+            return
+        }
+        
+        Task {
+            let thumbnail = await Task.detached(priority: .userInitiated) {
+                return ImageStorageManager.shared.loadThumbnail(fileName: fileName)
+            }.value
+            
+            guard lastLoadedThumbnailFileName == fileName else { return }
+            
+            if let thumbnail = thumbnail {
+                imageCache.cacheThumbnail(thumbnail, fileName: fileName)
+                if displayImage == nil || isDisplayingThumbnail {
+                    displayImage = thumbnail
+                    isDisplayingThumbnail = true
+                }
             }
         }
     }
