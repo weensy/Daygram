@@ -22,7 +22,13 @@ struct CalendarView: View {
     @State private var showingEditEntry = false
     @State private var dragOffset: CGFloat = 0
     @State private var currentCarouselIndex: Int = 0
-    @State private var isDismissGesture = false
+    @State private var dragDirection: DragDirection?
+    @State private var isUIHidden: Bool = false
+
+    private enum DragDirection {
+        case vertical
+        case horizontal
+    }
     
     private let cardSpacing: CGFloat = 4
     private let sideInset: CGFloat = 0
@@ -245,96 +251,115 @@ struct CalendarView: View {
                     EntryCarouselView(
                         entries: monthEntries,
                         currentIndex: $currentCarouselIndex,
-                        isScrollDisabled: isDismissGesture,
-                        onDismiss: dismissEntryDetail
+                        isScrollDisabled: dragDirection == .vertical,
+                        disableCardAnimations: dragDirection == .vertical,
+                        disableImageLoading: dragDirection == .vertical,
+                        onDismiss: dismissEntryDetail,
+                        onTap: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isUIHidden.toggle()
+                            }
+                        }
                     )
                     .offset(y: dragOffset)
                     .simultaneousGesture(
-                        DragGesture(minimumDistance: 5)
+                        DragGesture(minimumDistance: 2)
                             .onChanged { value in
-                                // Direction lock: determine gesture type on first significant movement
-                                if !isDismissGesture {
-                                    // If vertical movement is dominant (downward), enable dismiss mode
-                                    if value.translation.height > 0 &&
-                                       abs(value.translation.height) > abs(value.translation.width) {
-                                        isDismissGesture = true
+                                if dragDirection == nil {
+                                    let width = abs(value.translation.width)
+                                    let height = abs(value.translation.height)
+                                    let lockThreshold: CGFloat = 8
+                                    if max(width, height) > lockThreshold {
+                                        if value.translation.height > 0 && height > width {
+                                            dragDirection = .vertical
+                                        } else if width > height {
+                                            dragDirection = .horizontal
+                                        }
                                     }
                                 }
-                                
-                                // Update offset in dismiss mode - follow finger immediately
-                                if isDismissGesture {
+
+                                if dragDirection == .vertical {
                                     dragOffset = max(0, value.translation.height)
                                 }
                             }
                             .onEnded { value in
-                                if isDismissGesture && value.translation.height > 100 {
+                                if dragDirection == .vertical && value.translation.height > 100 {
                                     dismissEntryDetail()
                                 }
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     dragOffset = 0
                                 }
-                                isDismissGesture = false  // Reset for next gesture
+                                dragDirection = nil
                             }
                     )
                     
                     // Floating UI elements - stays in place
-                    VStack {
-                        // Action buttons at top
-                        HStack {
-                            // Delete button (left aligned)
-                            Button(action: {
-                                showingDeleteAlert = true
-                            }) {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.red)
-                                    .frame(width: 44, height: 44)
+                    GlassEffectContainer(spacing: 8) {
+                        VStack {
+                            // Action buttons at top
+                            if !isUIHidden {
+                                HStack {
+                                    // Delete button (left aligned)
+                                    Button(action: {
+                                        showingDeleteAlert = true
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 18, weight: .medium))
+                                            .foregroundColor(.red)
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .glassEffect(.regular.interactive(), in: .circle)
+                                    .glassEffectTransition(.materialize)
+                                    
+                                    Spacer()
+                                    
+                                    // Edit button (right aligned)
+                                    Button(action: {
+                                        showingEditEntry = true
+                                    }) {
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 18, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .glassEffect(.regular.interactive(), in: .circle)
+                                    .glassEffectTransition(.materialize)
+                                    
+                                    // Share button
+                                    Button(action: {
+                                        showingShareSheet = true
+                                    }) {
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.system(size: 18, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .glassEffect(.regular.interactive(), in: .circle)
+                                    .glassEffectTransition(.materialize)
+                                }
+                                .padding(.horizontal, 16)
+                                // .padding(.top, 16)
                             }
-                            .glassEffect(.regular.interactive(), in: .circle)
                             
                             Spacer()
                             
-                            // Edit button (right aligned)
-                            Button(action: {
-                                showingEditEntry = true
-                            }) {
-                                Image(systemName: "pencil")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 44, height: 44)
+                            // Thumbnail indicator at bottom
+                            if monthEntries.count > 1 && !isUIHidden {
+                                ThumbnailIndicatorView(
+                                    entries: monthEntries,
+                                    currentIndex: $currentCarouselIndex
+                                )
+                                // .padding(.bottom, 12)
                             }
-                            .glassEffect(.regular.interactive(), in: .circle)
-                            
-                            // Share button
-                            Button(action: {
-                                showingShareSheet = true
-                            }) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 44, height: 44)
-                            }
-                            .glassEffect(.regular.interactive(), in: .circle)
-                        }
-                        .padding(.horizontal, 16)
-                        // .padding(.top, 16)
-                        
-                        Spacer()
-                        
-                        // Thumbnail indicator at bottom
-                        if monthEntries.count > 1 {
-                            ThumbnailIndicatorView(
-                                entries: monthEntries,
-                                currentIndex: $currentCarouselIndex
-                            )
-                            // .padding(.bottom, 12)
                         }
                     }
+                    .allowsHitTesting(!isUIHidden)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .onAppear {
                 currentCarouselIndex = initialIndex
+                isUIHidden = false
             }
             .onChange(of: currentCarouselIndex) { _, newIndex in
                 // Update selectedEntry when carousel changes

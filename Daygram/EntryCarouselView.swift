@@ -5,7 +5,10 @@ struct EntryCarouselView: View {
     let entries: [MemoryEntry]
     @Binding var currentIndex: Int
     var isScrollDisabled: Bool
+    var disableCardAnimations: Bool = false
+    var disableImageLoading: Bool = false
     var onDismiss: () -> Void
+    var onTap: (() -> Void)? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var thumbnailCache = ThumbnailCache.shared
@@ -28,7 +31,10 @@ struct EntryCarouselView: View {
                                 cardWidth: cardWidth,
                                 geometry: geometry,
                                 currentIndex: scrolledID ?? currentIndex,
-                                index: index
+                                index: index,
+                                disableAnimations: disableCardAnimations,
+                                disableImageLoading: disableImageLoading,
+                                onTap: onTap
                             )
                             .id(index)
                         }
@@ -108,6 +114,9 @@ private struct EntryCardView: View {
     let geometry: GeometryProxy
     let currentIndex: Int
     let index: Int
+    let disableAnimations: Bool
+    let disableImageLoading: Bool
+    var onTap: (() -> Void)? = nil
     
     @Environment(\.colorScheme) private var colorScheme
     
@@ -123,7 +132,7 @@ private struct EntryCardView: View {
             isEditing: .constant(false),
             editedText: .constant(""),
             onSave: nil,
-            shouldLoadImage: isNearVisible
+            shouldLoadImage: isNearVisible && !disableImageLoading
         )
         .frame(width: cardWidth)
         .fixedSize(horizontal: false, vertical: true)
@@ -140,7 +149,11 @@ private struct EntryCardView: View {
         )
         .opacity(opacity)
         .scaleEffect(scale)
-        .animation(.easeOut(duration: 0.2), value: currentIndex)
+        .animation(disableAnimations ? nil : .easeOut(duration: 0.2), value: currentIndex)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
     }
     
     private var offset: CGFloat {
