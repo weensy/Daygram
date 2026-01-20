@@ -17,6 +17,10 @@ struct EditEntryView: View {
     @State private var showingSourcePicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     
+    // AI description states
+    @State private var isGeneratingDescription = false
+    @State private var showAIButton = false
+    
     @Environment(\.dynamicTypeSize) private var dts
     @State private var extra: CGFloat = 0
     let multiple: CGFloat = 1.48
@@ -75,6 +79,12 @@ struct EditEntryView: View {
                 editedText = entry.text
                 currentImage = ImageStorageManager.shared.loadImage(fileName: entry.imageFileName)
             }
+            .onChange(of: newImage) { _, image in
+                // Show AI button when new image is selected
+                if image != nil {
+                    showAIButton = true
+                }
+            }
         }
     }
     
@@ -112,6 +122,11 @@ struct EditEntryView: View {
     
     private var textInputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // AI description button - only shown when new image is selected and on iOS 26+
+            if showAIButton && newImage != nil {
+                aiDescriptionButton
+            }
+            
             TextField(String(localized: "add_entry.write_line"), text: $editedText, axis: .vertical)
                 .font(customFont())
                 .multilineTextAlignment(.center)
@@ -141,6 +156,53 @@ struct EditEntryView: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 24)
+    }
+    
+    @ViewBuilder
+    private var aiDescriptionButton: some View {
+        if #available(iOS 26.0, *) {
+            Button {
+                generateAIDescription()
+            } label: {
+                HStack(spacing: 6) {
+                    if isGeneratingDescription {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "sparkles")
+                    }
+                    Text(isGeneratingDescription 
+                         ? String(localized: "ai_description.generating")
+                         : String(localized: "ai_description.button"))
+                }
+                .font(.subheadline)
+                .foregroundColor(.accentColor)
+            }
+            .disabled(isGeneratingDescription)
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 8)
+        }
+    }
+    
+    private func generateAIDescription() {
+        guard let image = newImage else { return }
+        
+        Task {
+            isGeneratingDescription = true
+            defer { isGeneratingDescription = false }
+            
+            if #available(iOS 26.0, *) {
+                do {
+                    let description = try await ImageDescriptionService.shared.generateDescription(for: image)
+                    await MainActor.run {
+                        editedText = description
+                        showAIButton = false
+                    }
+                } catch {
+                    print("AI description generation failed: \(error)")
+                }
+            }
+        }
     }
     
     private func recalc() {

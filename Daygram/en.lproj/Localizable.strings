@@ -46,3 +46,8 @@
 "settings.reminder.open_settings" = "Open Settings";
 "notification.reminder.title" = "Time to Write";
 "notification.reminder.body" = "Capture today's moment with a photo and a line.";
+
+// MARK: - AI Description
+"ai_description.button" = "Write with AI";
+"ai_description.generating" = "Generating...";
+"ai_description.error" = "AI generation failed";
