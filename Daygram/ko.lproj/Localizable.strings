@@ -34,7 +34,7 @@
 
 // MARK: - SettingsView
 "settings.title" = "설정";
-"settings.app_name" = "데이그램";
+"settings.app_name" = "Daygram";
 "settings.app_tagline" = "하루 한 장, 하루 한 줄";
 
 // MARK: - Reminder

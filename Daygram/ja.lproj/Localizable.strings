@@ -1,0 +1,53 @@
+/* 
+  Localizable.strings (Japanese)
+  Daygram
+*/
+
+// MARK: - Common
+"common.cancel" = "キャンセル";
+"common.save" = "保存";
+"common.delete" = "削除";
+"common.edit" = "編集";
+"common.share" = "共有";
+"common.done" = "完了";
+"common.ok" = "OK";
+"common.error" = "エラー";
+
+// MARK: - CalendarView
+"calendar.delete_entry_title" = "記録を削除";
+"calendar.delete_entry_message" = "この記録は完全に削除されます。この操作は取り消せません。";
+"calendar.stats.streak" = "連続";
+"calendar.stats.weeks" = "週";
+"calendar.stats.memories" = "記録";
+
+// MARK: - AddEntryView
+"add_entry.title" = "新しい記録";
+"add_entry.change_photo" = "写真を変更";
+"add_entry.add_photo" = "写真を追加";
+"add_entry.camera" = "カメラ";
+"add_entry.photo_library" = "フォトライブラリ";
+"add_entry.write_line" = "一行を書く";
+
+// MARK: - EditEntryView
+"edit_entry.title" = "記録を編集";
+"edit_entry.loading_image" = "画像を読み込み中...";
+
+// MARK: - SettingsView
+"settings.title" = "設定";
+"settings.app_name" = "Daygram";
+"settings.app_tagline" = "一日一枚、一日一行";
+
+// MARK: - Reminder
+"settings.reminder.title" = "リマインダー";
+"settings.reminder.daily_reminder" = "毎日リマインダー";
+"settings.reminder.time" = "時間";
+"settings.reminder.permission_title" = "通知の許可";
+"settings.reminder.permission_message" = "毎日リマインダーを受け取るには、設定で通知を許可してください。";
+"settings.reminder.open_settings" = "設定を開く";
+"notification.reminder.title" = "今日を記録しましょう";
+"notification.reminder.body" = "今日の瞬間を写真と一行で残しましょう。";
+
+// MARK: - AI Description
+"ai_description.button" = "AIで作成";
+"ai_description.generating" = "作成中...";
+"ai_description.error" = "AI作成に失敗しました";
