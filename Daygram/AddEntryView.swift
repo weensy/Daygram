@@ -8,6 +8,8 @@ struct AddEntryView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
+    @State private var selectedDate: Date
+    @State private var showingDatePicker = false
     @State private var selectedImage: UIImage?
     @State private var entryText = ""
     @State private var showingImagePicker = false
@@ -21,6 +23,11 @@ struct AddEntryView: View {
     let multiple: CGFloat = 1.48
     
     private let textLimit = 100
+    
+    init(date: Date) {
+        self.date = date
+        self._selectedDate = State(initialValue: date)
+    }
     
     var body: some View {
         NavigationStack {
@@ -36,12 +43,35 @@ struct AddEntryView: View {
                 
                 Spacer()
             }
-            .navigationTitle(String(localized: "add_entry.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(String(localized: "common.cancel")) {
                         dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        showingDatePicker = true
+                    } label: {
+                        Text(selectedDate, format: .dateTime.year().month().day())
+                            .fontWeight(.semibold)
+                    }
+                    .popover(isPresented: $showingDatePicker, arrowEdge: .top) {
+                        DatePicker(
+                            "",
+                            selection: $selectedDate,
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .frame(minWidth: 320)
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                        .onChange(of: selectedDate) { _, _ in
+                            showingDatePicker = false
+                        }
                     }
                 }
                 
@@ -186,7 +216,7 @@ struct AddEntryView: View {
         }
         
         let entry = MemoryEntry(
-            date: date,
+            date: selectedDate,
             text: entryText.trimmingCharacters(in: .whitespacesAndNewlines),
             imageFileName: imageFileName,
             thumbnailFileName: thumbnailFileName
