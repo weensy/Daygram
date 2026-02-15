@@ -45,12 +45,6 @@ struct AddEntryView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(String(localized: "common.cancel")) {
-                        dismiss()
-                    }
-                }
-                
                 ToolbarItem(placement: .principal) {
                     Button {
                         showingDatePicker = true
@@ -74,15 +68,14 @@ struct AddEntryView: View {
                         }
                     }
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "common.save")) {
-                        saveEntry()
-                    }
-                    .disabled(selectedImage == nil || isLoading)
-                    .fontWeight(.medium)
-                }
             }
+            .background(
+                GlassNavigationButtons(
+                    onCancel: { dismiss() },
+                    onSave: { saveEntry() },
+                    isSaveDisabled: selectedImage == nil || isLoading
+                )
+            )
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(selectedImage: $selectedImage)
             }

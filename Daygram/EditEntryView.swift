@@ -41,21 +41,13 @@ struct EditEntryView: View {
             }
             .navigationTitle(String(localized: "edit_entry.title"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(String(localized: "common.cancel")) {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "common.save")) {
-                        saveEntry()
-                    }
-                    .disabled(isLoading)
-                    .fontWeight(.medium)
-                }
-            }
+            .background(
+                GlassNavigationButtons(
+                    onCancel: { dismiss() },
+                    onSave: { saveEntry() },
+                    isSaveDisabled: isLoading
+                )
+            )
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(selectedImage: $newImage)
             }

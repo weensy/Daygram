@@ -45,7 +45,7 @@ struct CalendarView: View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
-                    // Custom Header with year and settings icon
+                    // Custom Header with year and action buttons
                     HStack {
                         Text(yearText)
                             .font(.largeTitle)
@@ -53,14 +53,32 @@ struct CalendarView: View {
                         
                         Spacer()
                         
-                        Button(action: { showingSettings = true }) {
-                            Image(systemName: "gearshape")
-                                .font(.title2)
-                                .fontWeight(.medium)
+                        // Action buttons grouped in a glass capsule (Notes app style)
+                        HStack(spacing: 8) {
+                            // Button(action: {
+                            //     // TODO: Share functionality
+                            // }) {
+                            //     Image(systemName: "square.and.arrow.up")
+                            //         .font(.system(size: 22, weight: .regular))
+                            //         .frame(width: 40, height: 40)
+                            //         // .contentShape(Rectangle())
+                            //         .padding(.horizontal, 4)
+                            //         .padding(.vertical, 2)
+                            // }
+                            
+                            Button(action: { showingSettings = true }) {
+                                Image(systemName: "gearshape")
+                                    .font(.system(size: 22, weight: .regular))
+                                    .frame(width: 40, height: 40)
+                                    // .contentShape(Rectangle())
+                                    .padding(2)
+                            }
                         }
+                        .foregroundColor(.primary)
+                        .glassEffect(.regular.interactive(), in: .capsule)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .padding(.top, 0)
                     .padding(.bottom, 16)
                     
                     Spacer()
@@ -299,42 +317,54 @@ struct CalendarView: View {
                             // Action buttons at top
                             if !isUIHidden {
                                 HStack {
-                                    // Delete button (left aligned)
+                                    // Close button (left aligned)
                                     Button(action: {
-                                        showingDeleteAlert = true
+                                        dismissEntryDetail()
                                     }) {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 18, weight: .medium))
-                                            .foregroundColor(.red)
-                                            .frame(width: 44, height: 44)
+                                        Image(systemName: "chevron.left")
+                                            .font(.system(size: 22, weight: .regular))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 40, height: 40)
+                                            .padding(2)
                                     }
                                     .glassEffect(.regular.interactive(), in: .circle)
                                     .glassEffectTransition(.materialize)
                                     
                                     Spacer()
                                     
-                                    // Edit button (right aligned)
-                                    Button(action: {
-                                        showingEditEntry = true
-                                    }) {
-                                        Image(systemName: "pencil")
-                                            .font(.system(size: 18, weight: .medium))
-                                            .foregroundColor(.primary)
-                                            .frame(width: 44, height: 44)
+                                    // Share + Menu capsule (right aligned)
+                                    HStack(spacing: 8) {
+                                        Button(action: {
+                                            showingShareSheet = true
+                                        }) {
+                                            Image(systemName: "square.and.arrow.up")
+                                                .font(.system(size: 22, weight: .regular))
+                                                .frame(width: 40, height: 40)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 2)
+                                        }
+                                        
+                                        Menu {
+                                            Button(action: {
+                                                showingEditEntry = true
+                                            }) {
+                                                Label(String(localized: "common.edit"), systemImage: "pencil")
+                                            }
+                                            
+                                            Button(role: .destructive, action: {
+                                                showingDeleteAlert = true
+                                            }) {
+                                                Label(String(localized: "common.delete"), systemImage: "trash")
+                                            }
+                                        } label: {
+                                            Image(systemName: "ellipsis")
+                                                .font(.system(size: 22, weight: .regular))
+                                                .frame(width: 40, height: 40)
+                                                .padding(2)
+                                        }
                                     }
-                                    .glassEffect(.regular.interactive(), in: .circle)
-                                    .glassEffectTransition(.materialize)
-                                    
-                                    // Share button
-                                    Button(action: {
-                                        showingShareSheet = true
-                                    }) {
-                                        Image(systemName: "square.and.arrow.up")
-                                            .font(.system(size: 18, weight: .medium))
-                                            .foregroundColor(.primary)
-                                            .frame(width: 44, height: 44)
-                                    }
-                                    .glassEffect(.regular.interactive(), in: .circle)
+                                    .foregroundColor(.primary)
+                                    .glassEffect(.regular.interactive(), in: .capsule)
                                     .glassEffectTransition(.materialize)
                                 }
                                 .padding(.horizontal, 16)
